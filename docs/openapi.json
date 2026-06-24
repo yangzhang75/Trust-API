@@ -1,0 +1,277 @@
+{
+  "components": {
+    "schemas": {
+      "Chain": {
+        "description": "Supported chains. Solana (and other non-EVM chains) land in Week 2.",
+        "enum": [
+          "ethereum"
+        ],
+        "title": "Chain",
+        "type": "string"
+      },
+      "ErrorResponse": {
+        "description": "Uniform error envelope for documented 4xx responses.",
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "detail"
+        ],
+        "title": "ErrorResponse",
+        "type": "object"
+      },
+      "HumanLikelihood": {
+        "description": "Qualitative likelihood that the wallet is operated by a real human.",
+        "enum": [
+          "high",
+          "medium",
+          "low"
+        ],
+        "title": "HumanLikelihood",
+        "type": "string"
+      },
+      "Proof": {
+        "description": "A time-bounded, signed attestation of an assessment.\n\nWeek 1 signatures are deterministic stubs and MUST NOT be trusted as\ncryptographic proofs.",
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "issued_at": {
+            "format": "date-time",
+            "title": "Issued At",
+            "type": "string"
+          },
+          "signature": {
+            "title": "Signature",
+            "type": "string"
+          },
+          "valid_for_hours": {
+            "minimum": 1.0,
+            "title": "Valid For Hours",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "issued_at",
+          "expires_at",
+          "valid_for_hours",
+          "signature"
+        ],
+        "title": "Proof",
+        "type": "object"
+      },
+      "RiskFlag": {
+        "description": "Risk signals attached to an assessment.\n\nWeek 1 emits a deterministic subset derived from the wallet hash; real\ndetectors (mixer exposure, Sybil clustering, sanctions) arrive later.",
+        "enum": [
+          "new_wallet",
+          "low_activity",
+          "low_counterparty_diversity",
+          "sybil_suspected"
+        ],
+        "title": "RiskFlag",
+        "type": "string"
+      },
+      "TrustTier": {
+        "description": "Coarse reputation tier assigned to a wallet.",
+        "enum": [
+          "bronze",
+          "silver",
+          "gold"
+        ],
+        "title": "TrustTier",
+        "type": "string"
+      },
+      "VerifyRequest": {
+        "additionalProperties": false,
+        "description": "Request body for POST /verify.",
+        "properties": {
+          "chains": {
+            "items": {
+              "$ref": "#/components/schemas/Chain"
+            },
+            "minItems": 1,
+            "title": "Chains",
+            "type": "array"
+          },
+          "wallet": {
+            "examples": [
+              "0x52908400098527886E0F7030069857D2E4169EE7"
+            ],
+            "title": "Wallet",
+            "type": "string"
+          }
+        },
+        "required": [
+          "wallet"
+        ],
+        "title": "VerifyRequest",
+        "type": "object"
+      },
+      "VerifyResponse": {
+        "description": "200 response body for POST /verify.",
+        "properties": {
+          "chains": {
+            "items": {
+              "$ref": "#/components/schemas/Chain"
+            },
+            "title": "Chains",
+            "type": "array"
+          },
+          "confidence_score": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence Score",
+            "type": "number"
+          },
+          "human_likelihood": {
+            "$ref": "#/components/schemas/HumanLikelihood"
+          },
+          "proof": {
+            "$ref": "#/components/schemas/Proof"
+          },
+          "risk_flags": {
+            "items": {
+              "$ref": "#/components/schemas/RiskFlag"
+            },
+            "title": "Risk Flags",
+            "type": "array"
+          },
+          "trust_tier": {
+            "$ref": "#/components/schemas/TrustTier"
+          },
+          "wallet": {
+            "title": "Wallet",
+            "type": "string"
+          }
+        },
+        "required": [
+          "wallet",
+          "human_likelihood",
+          "trust_tier",
+          "confidence_score",
+          "risk_flags",
+          "chains",
+          "proof"
+        ],
+        "title": "VerifyResponse",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "APIKeyHeader": {
+        "in": "header",
+        "name": "X-API-Key",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "B2B Reputation-as-a-Service API. Week 1 returns deterministic stub data behind clean typed interfaces.",
+    "title": "Proof-of-Human Trust API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "description": "Return service liveness status.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Health Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Liveness probe",
+        "tags": [
+          "meta"
+        ]
+      }
+    },
+    "/verify": {
+      "post": {
+        "description": "Run the (stubbed) trust pipeline and return a deterministic result.",
+        "operationId": "verify_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid wallet address"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Missing or invalid API key"
+          },
+          "422": {
+            "description": "Malformed request body"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Assess the human-likelihood and trust tier of a wallet",
+        "tags": [
+          "verify"
+        ]
+      }
+    }
+  }
+}
