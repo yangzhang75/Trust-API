@@ -16,6 +16,7 @@ from trust_api.core.logging import configure_logging, get_logger
 def create_app(settings: Settings | None = None) -> FastAPI:
     """Build and return a configured FastAPI application instance."""
     settings = settings or get_settings()
+    settings.validate_runtime()
     configure_logging(settings.log_level)
     logger = get_logger(__name__)
 

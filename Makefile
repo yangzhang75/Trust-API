@@ -21,12 +21,12 @@ test: ## Run tests with coverage
 	pytest --cov=trust_api --cov-report=term-missing
 
 lint: ## Lint with ruff and check formatting with black
-	ruff check src tests
-	black --check src tests
+	ruff check src tests scripts migrations
+	black --check src tests scripts migrations
 
 fmt: ## Auto-format with black and apply ruff fixes
-	ruff check --fix src tests
-	black src tests
+	ruff check --fix src tests scripts migrations
+	black src tests scripts migrations
 
 migrate: ## Apply database migrations to head
 	alembic upgrade head

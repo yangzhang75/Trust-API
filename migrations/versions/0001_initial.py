@@ -26,8 +26,12 @@ def upgrade() -> None:
         "wallets",
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("address", sa.String(length=64), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
         sa.UniqueConstraint("address", name="uq_wallets_address"),
     )
     op.create_index("ix_wallets_address", "wallets", ["address"])
@@ -38,7 +42,9 @@ def upgrade() -> None:
         sa.Column("wallet_id", sa.Integer(), nullable=False),
         sa.Column("chain", sa.String(length=32), nullable=False),
         sa.Column("payload", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-        sa.Column("computed_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "computed_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
         sa.ForeignKeyConstraint(["wallet_id"], ["wallets.id"], ondelete="CASCADE"),
     )
     op.create_index("ix_wallet_features_wallet_id", "wallet_features", ["wallet_id"])
@@ -51,7 +57,9 @@ def upgrade() -> None:
         sa.Column("trust_tier", sa.String(length=16), nullable=False),
         sa.Column("confidence_score", sa.Numeric(precision=5, scale=4), nullable=False),
         sa.Column("risk_flags", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-        sa.Column("scored_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "scored_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
         sa.ForeignKeyConstraint(["wallet_id"], ["wallets.id"], ondelete="CASCADE"),
     )
     op.create_index("ix_trust_scores_wallet_id", "trust_scores", ["wallet_id"])
@@ -75,7 +83,9 @@ def upgrade() -> None:
         sa.Column("key_hash", sa.String(length=128), nullable=False),
         sa.Column("label", sa.String(length=128), nullable=True),
         sa.Column("active", sa.Boolean(), server_default="true", nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
         sa.UniqueConstraint("key_hash", name="uq_api_keys_key_hash"),
     )
     op.create_index("ix_api_keys_key_hash", "api_keys", ["key_hash"])
@@ -87,7 +97,9 @@ def upgrade() -> None:
         sa.Column("wallet_id", sa.Integer(), nullable=True),
         sa.Column("endpoint", sa.String(length=128), nullable=False),
         sa.Column("status_code", sa.Integer(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
         sa.ForeignKeyConstraint(["api_key_id"], ["api_keys.id"], ondelete="SET NULL"),
         sa.ForeignKeyConstraint(["wallet_id"], ["wallets.id"], ondelete="SET NULL"),
     )

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import time
 from typing import Annotated
 
@@ -26,6 +28,20 @@ def get_settings(request: Request) -> Settings:
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 
 
+def _key_allowed(api_key: str, allowed: set[str]) -> bool:
+    """Constant-time membership check to avoid leaking keys via timing.
+
+    Compares against every configured key (no early return) using
+    hmac.compare_digest so the work done is independent of which key — if
+    any — matched.
+    """
+    matched = False
+    for known in allowed:
+        if hmac.compare_digest(api_key, known):
+            matched = True
+    return matched
+
+
 def require_api_key(
     settings: SettingsDep,
     api_key: Annotated[str | None, Depends(_api_key_scheme)] = None,
@@ -35,7 +51,7 @@ def require_api_key(
     Returns the validated key. Raises 401 when missing or unknown. With no
     keys configured the API is closed (every request is rejected).
     """
-    if not api_key or api_key not in settings.api_key_set:
+    if not api_key or not _key_allowed(api_key, settings.api_key_set):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing or invalid API key.",
@@ -71,7 +87,9 @@ def rate_limit(
     """
     limit = settings.rate_limit_per_minute
     window = int(time.time() // 60)
-    key = f"ratelimit:{api_key}:{window}"
+    # Hash the API key so plaintext keys never land in Redis key names.
+    key_id = hashlib.sha256(api_key.encode("utf-8")).hexdigest()[:16]
+    key = f"ratelimit:{key_id}:{window}"
     try:
         count = r.incr(key)
         if count == 1:
