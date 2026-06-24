@@ -53,3 +53,17 @@ def test_verify_invalid_wallet_returns_400(client: TestClient) -> None:
 def test_verify_malformed_body_returns_422(client: TestClient) -> None:
     resp = client.post("/verify", json={"chains": ["ethereum"]}, headers=AUTH)  # missing wallet
     assert resp.status_code == 422
+
+
+def test_verify_missing_api_key_returns_401(client: TestClient) -> None:
+    resp = client.post("/verify", json={"wallet": VALID_WALLET, "chains": ["ethereum"]})
+    assert resp.status_code == 401
+
+
+def test_verify_invalid_api_key_returns_401(client: TestClient) -> None:
+    resp = client.post(
+        "/verify",
+        json={"wallet": VALID_WALLET, "chains": ["ethereum"]},
+        headers={"X-API-Key": "wrong-key"},
+    )
+    assert resp.status_code == 401

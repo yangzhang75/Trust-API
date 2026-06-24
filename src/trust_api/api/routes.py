@@ -11,7 +11,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from trust_api.api.deps import get_settings
+from trust_api.api.deps import get_settings, rate_limit
 from trust_api.config import Settings
 from trust_api.schemas.verify import (
     ErrorResponse,
@@ -29,6 +29,7 @@ router = APIRouter()
     response_model=VerifyResponse,
     tags=["verify"],
     summary="Assess the human-likelihood and trust tier of a wallet",
+    dependencies=[Depends(rate_limit)],  # requires a valid API key, then rate-limits
     responses={
         400: {"model": ErrorResponse, "description": "Invalid wallet address"},
         401: {"model": ErrorResponse, "description": "Missing or invalid API key"},
