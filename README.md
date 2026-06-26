@@ -8,8 +8,9 @@ and a time-bounded signed proof.
 > end-to-end but returns **deterministic stub data derived from a hash of
 > the wallet** — real blockchain ingestion, scoring/ML, Sybil detection,
 > and cryptographic signing are stubbed behind typed interfaces and marked
-> with `# TODO(week N)`. See [`docs/architecture.md`](docs/architecture.md)
-> and [`docs/engineering-plan.md`](docs/engineering-plan.md).
+> with `# TODO(week N)`. See [`docs/api-use-cases.md`](docs/api-use-cases.md),
+> [`docs/architecture.md`](docs/architecture.md), and
+> [`docs/engineering-plan.md`](docs/engineering-plan.md).
 
 ## Tech stack
 

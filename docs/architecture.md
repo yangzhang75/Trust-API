@@ -5,6 +5,8 @@ consumer sends a wallet address, and we return a human-likelihood
 assessment, a trust tier, a confidence score, risk flags, and a
 time-bounded signed proof.
 
+For who calls this and why, see [`api-use-cases.md`](api-use-cases.md).
+
 > **Week 1 status:** the full request path runs end-to-end, but every
 > pipeline stage returns **deterministic stub data derived from a hash of
 > the wallet address**. Real blockchain ingestion, feature engineering,
