@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help install run up down test lint fmt migrate openapi
+.PHONY: help install run up down test lint fmt migrate seed worker openapi
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -30,6 +30,12 @@ fmt: ## Auto-format with black and apply ruff fixes
 
 migrate: ## Apply database migrations to head
 	alembic upgrade head
+
+seed: ## Seed the labeled sample wallets (requires a migrated DB)
+	python scripts/seed_wallets.py
+
+worker: ## Run the background ingestion worker (one pass)
+	python -m trust_api.worker --once
 
 openapi: ## Export the OpenAPI schema to docs/openapi.json
 	python scripts/export_openapi.py

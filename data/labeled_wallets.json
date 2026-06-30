@@ -1,0 +1,48 @@
+{
+  "description": "Small labeled wallet dataset for ingestion + (Week 4) scoring validation. Labels are NOT ground truth; see label_basis on each entry.",
+  "label_legend": {
+    "likely_human": "Behaves like a real, individual human operator.",
+    "likely_sybil": "Behaves like a bot / airdrop-farming / Sybil wallet."
+  },
+  "label_basis_legend": {
+    "public_identity": "Well-known public address; the human label is widely documented.",
+    "illustrative_synthetic": "Placeholder address chosen to illustrate a pattern. NOT a real accusation; to be replaced with a verified labeled set (e.g. a public airdrop Sybil post-mortem) before Week 4 scoring validation."
+  },
+  "wallets": [
+    {
+      "address": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+      "label": "likely_human",
+      "chain": "ethereum",
+      "label_basis": "public_identity",
+      "reason": "vitalik.eth — many years of activity, ENS identity, highly diverse counterparties and contract interactions; a clear individual human operator."
+    },
+    {
+      "address": "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B",
+      "label": "likely_human",
+      "chain": "ethereum",
+      "label_basis": "public_identity",
+      "reason": "A second well-known Vitalik Buterin address — long, organic, multi-year history."
+    },
+    {
+      "address": "0x000000000000000000000000000000000000dEaD",
+      "label": "likely_sybil",
+      "chain": "ethereum",
+      "label_basis": "illustrative_synthetic",
+      "reason": "Burn/sink address — not a human operator. Used as a clear non-human negative example."
+    },
+    {
+      "address": "0x1111111111111111111111111111111111111111",
+      "label": "likely_sybil",
+      "chain": "ethereum",
+      "label_basis": "illustrative_synthetic",
+      "reason": "Illustrative freshly-created burst wallet: short lifespan, single funding source, repetitive low-value txs to qualify for an airdrop. Placeholder — replace with a verified Sybil address before scoring validation."
+    },
+    {
+      "address": "0x2222222222222222222222222222222222222222",
+      "label": "likely_sybil",
+      "chain": "ethereum",
+      "label_basis": "illustrative_synthetic",
+      "reason": "Illustrative airdrop-farming wallet in a cluster funded from one parent, low counterparty diversity. Placeholder — replace with a verified Sybil address before scoring validation."
+    }
+  ]
+}
