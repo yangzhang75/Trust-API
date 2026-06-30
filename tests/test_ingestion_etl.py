@@ -9,8 +9,8 @@ from sqlalchemy.orm import Session
 
 from trust_api.db.models import Wallet, WalletTransaction
 from trust_api.schemas.verify import Chain
-from trust_api.services.ingestion.models import Transaction
 from trust_api.services.ingestion.load import load_transactions
+from trust_api.services.ingestion.models import Transaction
 from trust_api.services.ingestion.transform import normalize_transactions
 
 WALLET = "0x52908400098527886E0F7030069857D2E4169EE7"

@@ -20,6 +20,7 @@ from trust_api.services.ingestion.errors import (
 from trust_api.services.ingestion.load import LoadResult, load_transactions
 from trust_api.services.ingestion.models import Transaction, WalletActivity
 from trust_api.services.ingestion.provider import EtherscanClient
+from trust_api.services.ingestion.service import fetch_wallet_history, ingest_wallet
 from trust_api.services.ingestion.transform import normalize_transactions
 
 __all__ = [
@@ -33,6 +34,8 @@ __all__ = [
     "Transaction",
     "WalletActivity",
     "fetch_activity",
+    "fetch_wallet_history",
+    "ingest_wallet",
     "load_transactions",
     "normalize_transactions",
 ]
