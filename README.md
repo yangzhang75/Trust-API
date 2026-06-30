@@ -117,6 +117,30 @@ All settings are read from the environment (see [`.env.example`](.env.example)):
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis URL |
 | `PROOF_VALID_FOR_HOURS` | `24` | Proof validity window |
 | `ENVIRONMENT` / `LOG_LEVEL` | `development` / `INFO` | App metadata / logging |
+| `ETHERSCAN_API_KEY` | _(empty)_ | Web3 provider key; blank disables live ingestion |
+| `INGESTION_CACHE_TTL_SECONDS` | `21600` | Redis TTL for cached wallet history (0 = off) |
+| `WORKER_INTERVAL_SECONDS` | `3600` | Background worker refresh interval |
+
+## Blockchain data ingestion (Week 2)
+
+A real ingestion service fetches a wallet's Ethereum transaction history
+from **Etherscan (V2 unified API)** and stores it in Postgres via an
+idempotent ETL pipeline, driven by a background worker. See
+[`docs/ingestion.md`](docs/ingestion.md) for the provider rationale, ETL
+flow, and data model.
+
+```bash
+make migrate                 # apply migrations (adds wallet_transactions)
+export ETHERSCAN_API_KEY=... # optional; never commit. Blank = register-only
+make seed                    # seed data/labeled_wallets.json
+make worker                  # one ingestion pass (or `python -m trust_api.worker`)
+```
+
+The provider key is read from the environment only and must never be
+committed (`.env.example` ships it blank). Without a key the API and worker
+still run — wallets are registered without transaction history. The
+`/verify` contract is unchanged; ingested data feeds later weeks, never the
+public API (raw transactions are internal-only).
 
 ## Project layout
 
@@ -124,14 +148,19 @@ All settings are read from the environment (see [`.env.example`](.env.example)):
 src/trust_api/
   main.py            # app factory
   config.py          # pydantic-settings
+  worker.py          # background ingestion worker (APScheduler)
   api/               # routes.py, deps.py (auth + rate limit)
   schemas/           # verify.py (Pydantic v2 models + enums)
-  services/          # ingestion, features, scoring, proof (stubbed)
+  services/
+    ingestion/       # provider + transform + load + service (real, Week 2)
+    features, scoring, proof   # still stubbed
   db/                # session.py, models.py
   core/              # logging.py
-tests/               # health + verify tests
-migrations/          # Alembic env + initial migration
-docs/                # architecture.md, engineering-plan.md, openapi.json
+data/                # labeled_wallets.json (sample dataset)
+scripts/             # seed_wallets.py, export_openapi.py
+tests/               # health, verify, ingestion, ETL, worker, seed tests
+migrations/          # Alembic env + migrations (0001 schema, 0002 txs)
+docs/                # architecture.md, ingestion.md, engineering-plan.md, openapi.json
 ```
 
 ## License

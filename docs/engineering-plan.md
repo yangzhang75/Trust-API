@@ -15,10 +15,14 @@ in stubbed bodies without breaking the API contract.
 - API-key auth + Redis rate limiting.
 - DB schema (SQLAlchemy + one Alembic migration), docker-compose, docs.
 
-## Week 2 — Ingestion (real on-chain data)
-- Real EVM ingestion via RPC providers/indexers (Alchemy/Etherscan/node).
-- Per-chain adapters; add **Solana** support and wallet-format validation.
-- Redis caching of fetched activity; backoff/retry; provider failover.
+## Week 2 — Ingestion (real on-chain data) ✅
+- Real Ethereum ingestion via Etherscan V2 (`account/txlist`); chain-id
+  registry so Polygon/Solana plug in later (Ethereum only this week).
+- Resilient client: timeouts, exponential-backoff retry, 429 handling,
+  typed errors; Redis caching of fetched history.
+- Idempotent ETL (transform → upsert) into `wallet_transactions`; background
+  worker; labeled sample dataset + seed script. See `docs/ingestion.md`.
+- Deferred to a later week: Solana/Polygon adapters, multi-provider failover.
 
 ## Week 3 — Feature Engineering
 - Real features: account age, tx cadence, gas profiles,
