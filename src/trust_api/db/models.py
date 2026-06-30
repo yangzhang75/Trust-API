@@ -11,12 +11,14 @@ from __future__ import annotations
 from datetime import datetime
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     DateTime,
     ForeignKey,
     Integer,
     Numeric,
     String,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -38,10 +40,15 @@ class Wallet(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
+    # Ingestion aggregates (Week 2): populated by the ETL load step.
+    first_seen: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_seen: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    tx_count: Mapped[int] = mapped_column(Integer, server_default="0", nullable=False)
 
     features: Mapped[list[WalletFeature]] = relationship(back_populates="wallet")
     scores: Mapped[list[TrustScore]] = relationship(back_populates="wallet")
     proofs: Mapped[list[Proof]] = relationship(back_populates="wallet")
+    transactions: Mapped[list[WalletTransaction]] = relationship(back_populates="wallet")
 
 
 class WalletFeature(Base):
@@ -61,6 +68,35 @@ class WalletFeature(Base):
     )
 
     wallet: Mapped[Wallet] = relationship(back_populates="features")
+
+
+class WalletTransaction(Base):
+    """A normalized on-chain transaction for a wallet (internal storage).
+
+    Raw-ish tx records live here for feature engineering; the public API
+    never exposes them. Idempotency is enforced by a unique
+    (wallet_id, tx_hash) constraint so re-ingestion creates no duplicates.
+    """
+
+    __tablename__ = "wallet_transactions"
+    __table_args__ = (UniqueConstraint("wallet_id", "tx_hash", name="uq_wallet_tx_hash"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    wallet_id: Mapped[int] = mapped_column(
+        ForeignKey("wallets.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    chain: Mapped[str] = mapped_column(String(32), nullable=False)
+    tx_hash: Mapped[str] = mapped_column(String(66), nullable=False)
+    block_number: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    block_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    value_wei: Mapped[int] = mapped_column(Numeric(80, 0), nullable=False)
+    direction: Mapped[str] = mapped_column(String(8), nullable=False)  # in | out | self
+    counterparty: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    wallet: Mapped[Wallet] = relationship(back_populates="transactions")
 
 
 class TrustScore(Base):

@@ -16,6 +16,7 @@ from trust_api.db.session import Base, get_db, get_engine, get_sessionmaker
 EXPECTED_TABLES = {
     "wallets",
     "wallet_features",
+    "wallet_transactions",
     "trust_scores",
     "proofs",
     "api_keys",
