@@ -17,17 +17,22 @@ from trust_api.services.ingestion.errors import (
     ProviderRateLimitedError,
     ProviderTimeoutError,
 )
+from trust_api.services.ingestion.load import LoadResult, load_transactions
 from trust_api.services.ingestion.models import Transaction, WalletActivity
 from trust_api.services.ingestion.provider import EtherscanClient
+from trust_api.services.ingestion.transform import normalize_transactions
 
 __all__ = [
     "DataUnavailableError",
     "EtherscanClient",
     "IngestionError",
+    "LoadResult",
     "ProviderError",
     "ProviderRateLimitedError",
     "ProviderTimeoutError",
     "Transaction",
     "WalletActivity",
     "fetch_activity",
+    "load_transactions",
+    "normalize_transactions",
 ]

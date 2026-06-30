@@ -6,10 +6,17 @@ instance so they never depend on the developer's local environment.
 
 from __future__ import annotations
 
+import os
+from collections.abc import Iterator
+
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.orm import Session, sessionmaker
 
 from trust_api.config import Settings
+from trust_api.db.session import Base
 from trust_api.main import create_app
 
 TEST_API_KEY = "test-key"
@@ -30,3 +37,34 @@ def client(settings: Settings) -> TestClient:
     """A TestClient bound to an app built from the test settings."""
     app = create_app(settings)
     return TestClient(app)
+
+
+@pytest.fixture
+def db_session() -> Iterator[Session]:
+    """A SQLAlchemy session against a real Postgres test database.
+
+    Uses TEST_DATABASE_URL (or DATABASE_URL) — CI provides a Postgres
+    service. Skips cleanly when no database is reachable so contributors
+    without a local Postgres aren't blocked.
+    """
+    url = (
+        os.environ.get("TEST_DATABASE_URL")
+        or os.environ.get("DATABASE_URL")
+        or Settings().database_url
+    )
+    engine = create_engine(url)
+    try:
+        engine.connect().close()
+    except OperationalError:
+        engine.dispose()
+        pytest.skip("no Postgres available for db_session tests")
+
+    Base.metadata.create_all(engine)
+    session = sessionmaker(bind=engine)()
+    try:
+        yield session
+    finally:
+        session.rollback()
+        session.close()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
