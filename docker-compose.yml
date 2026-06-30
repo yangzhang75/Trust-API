@@ -40,12 +40,33 @@ services:
       RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-60}
       ENVIRONMENT: ${ENVIRONMENT:-development}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      # Web3 data provider key (Etherscan V2). Blank = ingestion disabled.
+      ETHERSCAN_API_KEY: ${ETHERSCAN_API_KEY:-}
     ports:
       - "8000:8000"
     # Apply migrations, then serve.
     command: >-
       sh -c "alembic upgrade head &&
              uvicorn trust_api.main:app --host 0.0.0.0 --port 8000"
+
+  worker:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://trust:trust@postgres:5432/trust
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      ETHERSCAN_API_KEY: ${ETHERSCAN_API_KEY:-}
+      WORKER_INTERVAL_SECONDS: ${WORKER_INTERVAL_SECONDS:-3600}
+    # Wait for the api to apply migrations, then run the ingestion worker.
+    command: >-
+      sh -c "alembic upgrade head &&
+             python -m trust_api.worker"
 
 volumes:
   pgdata:

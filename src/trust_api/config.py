@@ -55,6 +55,8 @@ class Settings(BaseSettings):
     ingestion_max_transactions: int = Field(default=1000, ge=1)
     # Redis TTL (seconds) for cached wallet history; 0 disables caching.
     ingestion_cache_ttl_seconds: int = Field(default=21600, ge=0)
+    # Background worker refresh interval (seconds).
+    worker_interval_seconds: int = Field(default=3600, ge=1)
 
     @property
     def ingestion_provider_configured(self) -> bool:
