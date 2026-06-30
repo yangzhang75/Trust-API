@@ -70,6 +70,15 @@ async def test_fetch_requires_configured_provider() -> None:
         await fetch_wallet_history(WALLET, Chain.ethereum, settings=_settings(etherscan_api_key=""))
 
 
+async def test_fetch_rejects_unsupported_chain(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "trust_api.services.ingestion.service.EtherscanClient.supports",
+        staticmethod(lambda chain: False),
+    )
+    with pytest.raises(ProviderError):
+        await fetch_wallet_history(WALLET, Chain.ethereum, settings=_settings())
+
+
 @respx.mock
 async def test_fetch_caches_and_serves_from_cache() -> None:
     route = respx.get(BASE).mock(return_value=httpx.Response(200, json=_payload(_raw(1))))
@@ -98,6 +107,47 @@ async def test_fetch_degrades_gracefully_when_cache_unavailable() -> None:
     )
     assert len(result) == 1
     assert route.call_count == 1  # cache failure did not block the provider call
+
+
+@respx.mock
+async def test_fetch_uses_injected_client() -> None:
+    import httpx as _httpx
+
+    from trust_api.services.ingestion.provider import EtherscanClient
+
+    respx.get(BASE).mock(return_value=httpx.Response(200, json=_payload(_raw(1))))
+    client = EtherscanClient(_settings(), client=_httpx.AsyncClient())
+    result = await fetch_wallet_history(WALLET, Chain.ethereum, settings=_settings(), client=client)
+    assert len(result) == 1
+    await client._client.aclose()
+
+
+def test_build_cache_returns_client_when_enabled() -> None:
+    from trust_api.services.ingestion.service import _build_cache
+
+    assert _build_cache(_settings(ingestion_cache_ttl_seconds=0)) is None
+    cache = _build_cache(_settings(ingestion_cache_ttl_seconds=60))
+    assert cache is not None
+
+
+def test_encode_decode_round_trip() -> None:
+    from datetime import UTC, datetime
+
+    from trust_api.services.ingestion.models import Transaction
+    from trust_api.services.ingestion.service import _decode, _encode
+
+    txs = [
+        Transaction(
+            chain=Chain.ethereum,
+            tx_hash="0x" + "a" * 64,
+            block_number=18_000_000,
+            block_time=datetime(2023, 11, 14, 12, 0, tzinfo=UTC),
+            value_wei=2**256 - 1,  # full uint256 must survive JSON round-trip
+            direction="in",
+            counterparty=None,  # null counterparty must round-trip
+        )
+    ]
+    assert _decode(_encode(txs)) == txs
 
 
 @respx.mock

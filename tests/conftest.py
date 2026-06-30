@@ -12,6 +12,7 @@ from collections.abc import Iterator
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -40,8 +41,8 @@ def client(settings: Settings) -> TestClient:
 
 
 @pytest.fixture
-def db_session() -> Iterator[Session]:
-    """A SQLAlchemy session against a real Postgres test database.
+def db_engine() -> Iterator[Engine]:
+    """A SQLAlchemy engine against a real Postgres test database.
 
     Uses TEST_DATABASE_URL (or DATABASE_URL) — CI provides a Postgres
     service. Skips cleanly when no database is reachable so contributors
@@ -57,14 +58,22 @@ def db_session() -> Iterator[Session]:
         engine.connect().close()
     except OperationalError:
         engine.dispose()
-        pytest.skip("no Postgres available for db_session tests")
+        pytest.skip("no Postgres available for DB tests")
 
     Base.metadata.create_all(engine)
-    session = sessionmaker(bind=engine)()
+    try:
+        yield engine
+    finally:
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+@pytest.fixture
+def db_session(db_engine: Engine) -> Iterator[Session]:
+    """A SQLAlchemy session bound to the test engine."""
+    session = sessionmaker(bind=db_engine)()
     try:
         yield session
     finally:
         session.rollback()
         session.close()
-        Base.metadata.drop_all(engine)
-        engine.dispose()

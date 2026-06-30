@@ -46,6 +46,13 @@ async def ingest_wallets(
             results[address] = result.inserted
         except IngestionError as exc:
             logger.warning("ingestion failed for %s: %s", address, exc)
+            session.rollback()
+            results[address] = None
+        except Exception:
+            # A single wallet must never abort the whole pass; roll back so
+            # the session stays usable for the next wallet.
+            logger.exception("unexpected error ingesting %s", address)
+            session.rollback()
             results[address] = None
     return results
 

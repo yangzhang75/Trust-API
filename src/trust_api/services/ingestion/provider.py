@@ -115,6 +115,9 @@ class EtherscanClient:
             resp = await self._client.get(self._settings.etherscan_base_url, params=params)
         except httpx.TimeoutException as exc:
             raise ProviderTimeoutError(str(exc)) from exc
+        except httpx.TransportError as exc:
+            # Connect/read/network errors are transient — retry them.
+            raise ProviderTimeoutError(f"transport error: {exc}") from exc
         except httpx.HTTPError as exc:
             raise ProviderError(f"HTTP error calling provider: {exc}") from exc
 

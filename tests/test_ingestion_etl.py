@@ -72,6 +72,15 @@ def test_transform_skips_malformed_and_unrelated_rows() -> None:
     assert len(normalize_transactions(rows, WALLET, Chain.ethereum)) == 1
 
 
+def test_classify_neither_party_defaults_to_out() -> None:
+    from trust_api.services.ingestion.transform import _classify
+
+    # Defensive branch: wallet is neither sender nor receiver.
+    direction, counterparty = _classify(WALLET.lower(), OTHER.lower(), OTHER.lower(), "")
+    assert direction == "out"
+    assert counterparty == OTHER.lower()
+
+
 # --- load (idempotent, needs Postgres) ---
 
 
@@ -128,3 +137,28 @@ def test_load_adds_only_new_transactions_on_partial_overlap(db_session: Session)
     result = load_transactions(db_session, WALLET, Chain.ethereum, _txs(4))
     assert result.inserted == 2  # only the 2 new ones
     assert result.total == 4
+
+
+def test_load_dedupes_within_batch(db_session: Session) -> None:
+    # Same tx_hash appears twice in one batch (provider pagination overlap).
+    dup = _txs(1)[0]
+    result = load_transactions(db_session, WALLET, Chain.ethereum, [dup, dup])
+    assert result.inserted == 1
+    assert result.total == 1
+
+
+def test_load_handles_full_uint256_value(db_session: Session) -> None:
+    big = 2**256 - 1
+    tx = Transaction(
+        chain=Chain.ethereum,
+        tx_hash="0x" + "f" * 64,
+        block_number=1,
+        block_time=datetime.fromtimestamp(1_700_000_000, tz=UTC),
+        value_wei=big,
+        direction="in",
+        counterparty=OTHER.lower(),
+    )
+    result = load_transactions(db_session, WALLET, Chain.ethereum, [tx])
+    assert result.inserted == 1
+    stored = db_session.execute(select(WalletTransaction.value_wei)).scalar_one()
+    assert int(stored) == big  # full uint256 survives the numeric(80,0) column

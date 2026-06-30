@@ -45,6 +45,13 @@ def load_transactions(
 
     inserted = 0
     if txs:
+        # De-duplicate within the batch: a provider can return the same
+        # tx_hash more than once (pagination overlap / internal entries).
+        # The DB unique constraint handles cross-run dupes; this handles
+        # in-batch ones so the insert and the `inserted` count stay correct.
+        unique: dict[str, Transaction] = {}
+        for tx in txs:
+            unique.setdefault(tx.tx_hash, tx)
         rows = [
             {
                 "wallet_id": wallet.id,
@@ -56,7 +63,7 @@ def load_transactions(
                 "direction": tx.direction,
                 "counterparty": tx.counterparty,
             }
-            for tx in txs
+            for tx in unique.values()
         ]
         stmt = (
             pg_insert(WalletTransaction)
