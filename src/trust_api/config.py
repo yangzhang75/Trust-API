@@ -41,6 +41,26 @@ class Settings(BaseSettings):
     # --- Proof issuance (stub config; real signing arrives later) ---
     proof_valid_for_hours: int = Field(default=24, ge=1)
 
+    # --- Ingestion (Week 2) ---
+    # Etherscan V2 unified API; one key works across chains via chainid.
+    etherscan_api_key: str = Field(default="")
+    etherscan_base_url: str = Field(default="https://api.etherscan.io/v2/api")
+    # Per-request HTTP timeout (seconds) for provider calls.
+    ingestion_timeout_seconds: float = Field(default=10.0, gt=0)
+    # Total attempts (1 = no retry) for transient provider failures.
+    ingestion_max_attempts: int = Field(default=4, ge=1)
+    # Exponential-backoff base (seconds) between retries; 0 disables waiting.
+    ingestion_backoff_seconds: float = Field(default=0.5, ge=0)
+    # Max normalized transactions fetched per wallet.
+    ingestion_max_transactions: int = Field(default=1000, ge=1)
+    # Redis TTL (seconds) for cached wallet history; 0 disables caching.
+    ingestion_cache_ttl_seconds: int = Field(default=21600, ge=0)
+
+    @property
+    def ingestion_provider_configured(self) -> bool:
+        """True when a live provider key is set; otherwise callers stub."""
+        return bool(self.etherscan_api_key.strip())
+
     # Keys that must never guard a real deployment.
     WEAK_API_KEYS: ClassVar[set[str]] = {"", "dev-key", "test-key", "changeme", "secret"}
 
