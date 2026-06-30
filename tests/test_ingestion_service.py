@@ -5,6 +5,7 @@ from __future__ import annotations
 import httpx
 import pytest
 import respx
+from redis.exceptions import RedisError
 from sqlalchemy.orm import Session
 
 from trust_api.config import Settings
@@ -54,6 +55,16 @@ class FakeAsyncCache:
         self.store[key] = value
 
 
+class FailingAsyncCache:
+    """Simulates an unreachable Redis: every op raises."""
+
+    async def get(self, key: str):
+        raise RedisError("redis down")
+
+    async def set(self, key: str, value, ex=None) -> None:
+        raise RedisError("redis down")
+
+
 async def test_fetch_requires_configured_provider() -> None:
     with pytest.raises(ProviderError):
         await fetch_wallet_history(WALLET, Chain.ethereum, settings=_settings(etherscan_api_key=""))
@@ -74,6 +85,19 @@ async def test_fetch_caches_and_serves_from_cache() -> None:
     second = await fetch_wallet_history(WALLET, Chain.ethereum, settings=settings, cache=cache)
     assert [t.tx_hash for t in second] == [t.tx_hash for t in first]
     assert route.call_count == 1
+
+
+@respx.mock
+async def test_fetch_degrades_gracefully_when_cache_unavailable() -> None:
+    # Redis down: ingestion must still fetch and return, not crash.
+    route = respx.get(BASE).mock(return_value=httpx.Response(200, json=_payload(_raw(1))))
+    settings = _settings(ingestion_cache_ttl_seconds=3600)
+
+    result = await fetch_wallet_history(
+        WALLET, Chain.ethereum, settings=settings, cache=FailingAsyncCache()
+    )
+    assert len(result) == 1
+    assert route.call_count == 1  # cache failure did not block the provider call
 
 
 @respx.mock

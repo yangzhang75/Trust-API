@@ -13,6 +13,7 @@ import json
 from datetime import datetime
 
 import redis.asyncio as aioredis
+from redis.exceptions import RedisError
 
 from trust_api.config import Settings, get_settings
 from trust_api.core.logging import get_logger
@@ -69,6 +70,23 @@ def _build_cache(settings: Settings) -> aioredis.Redis | None:
     return aioredis.from_url(settings.redis_url)
 
 
+async def _cache_get(cache: aioredis.Redis, key: str) -> str | bytes | None:
+    """Read from cache, degrading gracefully if Redis is unavailable."""
+    try:
+        return await cache.get(key)
+    except RedisError as exc:
+        logger.warning("ingestion cache get failed (%s); bypassing cache", exc)
+        return None
+
+
+async def _cache_set(cache: aioredis.Redis, key: str, value: str, ttl: int) -> None:
+    """Write to cache, degrading gracefully if Redis is unavailable."""
+    try:
+        await cache.set(key, value, ex=ttl)
+    except RedisError as exc:
+        logger.warning("ingestion cache set failed (%s); continuing", exc)
+
+
 async def fetch_wallet_history(
     wallet: str,
     chain: Chain,
@@ -93,7 +111,7 @@ async def fetch_wallet_history(
     key = _cache_key(wallet, chain)
 
     if cache is not None:
-        cached = await cache.get(key)
+        cached = await _cache_get(cache, key)
         if cached is not None:
             logger.debug("ingestion cache hit for %s", key)
             return _decode(cached)
@@ -107,7 +125,7 @@ async def fetch_wallet_history(
     txs = normalize_transactions(raw, wallet, chain)
 
     if cache is not None:
-        await cache.set(key, _encode(txs), ex=settings.ingestion_cache_ttl_seconds)
+        await _cache_set(cache, key, _encode(txs), settings.ingestion_cache_ttl_seconds)
 
     return txs
 
