@@ -17,7 +17,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session, sessionmaker
 
 from trust_api.config import Settings
-from trust_api.db.session import Base
+from trust_api.db.session import Base, get_db
 from trust_api.main import create_app
 
 TEST_API_KEY = "test-key"
@@ -35,8 +35,13 @@ def settings() -> Settings:
 
 @pytest.fixture
 def client(settings: Settings) -> TestClient:
-    """A TestClient bound to an app built from the test settings."""
+    """A TestClient bound to an app built from the test settings.
+
+    /verify's DB read is disabled (get_db -> None) so these tests never
+    depend on a database; DB-backed /verify behavior is covered separately.
+    """
     app = create_app(settings)
+    app.dependency_overrides[get_db] = lambda: None
     return TestClient(app)
 
 

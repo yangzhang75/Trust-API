@@ -10,9 +10,14 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from trust_api.api.deps import get_settings, rate_limit
 from trust_api.config import Settings
+from trust_api.db.models import Wallet, WalletFeature
+from trust_api.db.session import get_db
 from trust_api.schemas.verify import (
     ErrorResponse,
     VerifyRequest,
@@ -22,6 +27,22 @@ from trust_api.schemas.verify import (
 from trust_api.services import features, ingestion, proof, scoring
 
 router = APIRouter()
+
+
+def _stored_features(db: Session | None, wallet_address: str) -> WalletFeature | None:
+    """Return the wallet's computed features if present; None otherwise.
+
+    Stub-safe: any DB unavailability degrades to None so /verify never
+    fails because features haven't been computed (or there's no database).
+    """
+    if db is None:
+        return None
+    try:
+        return db.execute(
+            select(WalletFeature).join(Wallet).where(Wallet.address == wallet_address)
+        ).scalar_one_or_none()
+    except SQLAlchemyError:
+        return None
 
 
 @router.post(
@@ -40,6 +61,7 @@ router = APIRouter()
 def verify(
     body: VerifyRequest,
     settings: Annotated[Settings, Depends(get_settings)],
+    db: Annotated[Session | None, Depends(get_db)] = None,
 ) -> VerifyResponse:
     """Run the (stubbed) trust pipeline and return a deterministic result."""
     if not is_valid_evm_wallet(body.wallet):
@@ -49,9 +71,12 @@ def verify(
         )
 
     # Pipeline: ingestion -> features -> scoring -> proof.
+    # Week 3: if this wallet has been ingested, wire its real features into
+    # scoring — the output is still a deterministic stub (real scoring: Week 4).
     activity = ingestion.fetch_activity(body.wallet, body.chains)
     feats = features.compute_activity_features(activity)
-    assessment = scoring.score(feats)
+    stored = _stored_features(db, body.wallet)
+    assessment = scoring.score(feats, stored_features=stored)
     issued = proof.issue_proof(
         body.wallet, assessment, valid_for_hours=settings.proof_valid_for_hours
     )

@@ -7,9 +7,13 @@ fully deterministic given the wallet. No ML, no Sybil detection.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
+from trust_api.core.logging import get_logger
 from trust_api.schemas.verify import HumanLikelihood, RiskFlag, TrustTier
 from trust_api.services.features import ActivityFeatures
+
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -22,13 +26,22 @@ class TrustAssessment:
     risk_flags: list[RiskFlag]
 
 
-def score(features: ActivityFeatures) -> TrustAssessment:
+def score(features: ActivityFeatures, stored_features: Any | None = None) -> TrustAssessment:
     """Score ``features`` into a trust assessment.
 
+    ``stored_features`` is the real wallet_features row when the wallet has
+    been ingested. Week 3 only proves the plumbing (ingestion -> features ->
+    scoring) — the output stays a deterministic STUB regardless.
+
     TODO(week4): replace with the real scoring model (calibrated ML /
-    heuristic ensemble) and a dedicated Sybil-detection stage; persist to
-    the trust_scores table.
+    heuristic ensemble) that actually consumes stored_features, plus a
+    dedicated Sybil-detection stage; persist to the trust_scores table.
     """
+    if stored_features is not None:
+        logger.debug(
+            "scoring wallet_id=%s from stored features (still stub output)",
+            stored_features.wallet_id,
+        )
     confidence = round(
         0.4 * features.activity_score + 0.3 * features.age_score + 0.3 * features.diversity_score,
         4,
