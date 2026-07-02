@@ -14,6 +14,7 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     Numeric,
@@ -52,9 +53,17 @@ class Wallet(Base):
 
 
 class WalletFeature(Base):
-    """Derived features for a wallet on a given chain (jsonb payload)."""
+    """Derived, privacy-preserving behavioral features for a wallet.
+
+    One row per (wallet, chain). Aggregated only — never raw transaction
+    data. The typed columns are the source of truth; ``payload`` keeps a
+    jsonb copy for ad-hoc querying.
+    """
 
     __tablename__ = "wallet_features"
+    __table_args__ = (
+        UniqueConstraint("wallet_id", "chain", name="uq_wallet_features_wallet_chain"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     wallet_id: Mapped[int] = mapped_column(
@@ -63,6 +72,19 @@ class WalletFeature(Base):
     chain: Mapped[str] = mapped_column(String(32), nullable=False)
     # Aggregated, privacy-preserving features — never raw transaction data.
     payload: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+
+    # --- Behavioral features (Week 3) ---
+    wallet_age_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    tx_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    active_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    tx_per_active_day: Mapped[float | None] = mapped_column(Float, nullable=True)
+    counterparty_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    counterparty_diversity_ratio: Mapped[float | None] = mapped_column(Float, nullable=True)
+    inbound_ratio: Mapped[float | None] = mapped_column(Float, nullable=True)
+    burst_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    dormancy_flag: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    recency_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
     computed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
