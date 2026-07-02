@@ -54,9 +54,11 @@ For who calls this and why, see [`api-use-cases.md`](api-use-cases.md).
    on-chain activity for the requested chains. Never stores raw
    transaction data downstream. *Week 1: synthetic activity from a sha256
    of the wallet.*
-2. **Features** (`services/features.py`) — derives privacy-preserving,
-   normalized features from activity. Persisted to `wallet_features`
-   (jsonb). *Week 1: simple deterministic transforms.*
+2. **Features** (`services/features/`) — **real (Week 3):** computes 10
+   per-wallet behavioral features from `wallet_transactions` via SQL
+   aggregation and upserts them into `wallet_features`. Driven by a batch
+   job / the worker after ingestion. See [`features.md`](features.md). The
+   `/verify` stub scoring reads these when present (output still stubbed).
 3. **Scoring** (`services/scoring.py`) — maps features to a
    `human_likelihood`, `trust_tier`, `confidence_score`, and `risk_flags`.
    Persisted to `trust_scores`. *Week 1: transparent weighted average +

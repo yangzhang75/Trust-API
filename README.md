@@ -134,6 +134,7 @@ make migrate                 # apply migrations (adds wallet_transactions)
 export ETHERSCAN_API_KEY=... # optional; never commit. Blank = register-only
 make seed                    # seed data/labeled_wallets.json
 make worker                  # one ingestion pass (or `python -m trust_api.worker`)
+make features                # compute behavioral features (docs/features.md)
 ```
 
 The provider key is read from the environment only and must never be

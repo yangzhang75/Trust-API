@@ -24,10 +24,14 @@ in stubbed bodies without breaking the API contract.
   worker; labeled sample dataset + seed script. See `docs/ingestion.md`.
 - Deferred to a later week: Solana/Polygon adapters, multi-provider failover.
 
-## Week 3 — Feature Engineering
-- Real features: account age, tx cadence, gas profiles,
-  counterparty-graph diversity, funding-source lineage.
-- Persist to `wallet_features`; feature versioning and backfill jobs.
+## Week 3 — Feature Engineering ✅
+- 10 real per-wallet behavioral features (age, activity intensity,
+  counterparty diversity, inbound ratio, burst score, dormancy, recency)
+  computed from `wallet_transactions` via SQL aggregation.
+- Persisted to `wallet_features` (idempotent upsert); batch job +
+  worker wiring; stub-safe read into /verify. See `docs/features.md`.
+- Deferred to later weeks: gas profiles, funding-source lineage,
+  feature versioning/backfill.
 
 ## Week 4 — Scoring & Sybil Detection
 - Replace stub scoring with a calibrated heuristic/ML ensemble.
