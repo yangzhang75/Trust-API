@@ -22,6 +22,7 @@ from trust_api.core.logging import configure_logging, get_logger
 from trust_api.db.models import Wallet
 from trust_api.db.session import get_sessionmaker
 from trust_api.schemas.verify import Chain
+from trust_api.services.features import compute_features_for_wallets
 from trust_api.services.ingestion import ingest_wallet
 from trust_api.services.ingestion.errors import IngestionError
 
@@ -61,6 +62,17 @@ def _known_wallet_addresses(session: Session) -> list[str]:
     return list(session.execute(select(Wallet.address)).scalars())
 
 
+def _wallet_ids_for_addresses(session: Session, addresses: list[str]) -> list[int]:
+    return list(session.execute(select(Wallet.id).where(Wallet.address.in_(addresses))).scalars())
+
+
+def _refresh_features(session: Session, addresses: list[str]) -> None:
+    """Recompute features for the given addresses after ingestion."""
+    wallet_ids = _wallet_ids_for_addresses(session, addresses)
+    if wallet_ids:
+        compute_features_for_wallets(session, wallet_ids)
+
+
 def refresh_all() -> dict[str, int | None]:
     """Refresh every wallet currently stored. Used by the scheduled job."""
     session_factory = get_sessionmaker()
@@ -70,13 +82,16 @@ def refresh_all() -> dict[str, int | None]:
             logger.info("no wallets to refresh")
             return {}
         logger.info("refreshing %d wallet(s)", len(addresses))
-        return asyncio.run(ingest_wallets(session, addresses))
+        results = asyncio.run(ingest_wallets(session, addresses))
+        _refresh_features(session, addresses)  # features follow ingestion
+        return results
 
 
 def ingest_single(address: str) -> None:
     session_factory = get_sessionmaker()
     with session_factory() as session:
         asyncio.run(ingest_wallets(session, [address]))
+        _refresh_features(session, [address])  # features follow ingestion
 
 
 def main(argv: list[str] | None = None) -> None:

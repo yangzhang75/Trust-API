@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import httpx
 import respx
+from sqlalchemy import select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from trust_api import worker as worker_mod
 from trust_api.config import Settings
+from trust_api.db.models import WalletFeature
 from trust_api.schemas.verify import Chain
 from trust_api.services.ingestion import load_transactions
 from trust_api.worker import ingest_single, ingest_wallets, main, refresh_all
@@ -95,14 +97,35 @@ def test_refresh_all_ingests_known_wallets(db_engine: Engine, monkeypatch) -> No
         respx.get(BASE).mock(side_effect=_responder)
         results = refresh_all()
     assert results == {W1: 1}
+    # features are refreshed as part of the same pass
+    with factory() as s:
+        assert s.execute(select(WalletFeature)).scalars().all()
 
 
 def test_ingest_single(db_engine: Engine, monkeypatch) -> None:
-    monkeypatch.setattr(worker_mod, "get_sessionmaker", lambda: sessionmaker(bind=db_engine))
+    factory = sessionmaker(bind=db_engine)
+    monkeypatch.setattr(worker_mod, "get_sessionmaker", lambda: factory)
     monkeypatch.setattr("trust_api.services.ingestion.service.get_settings", lambda: _settings())
     with respx.mock:
         respx.get(BASE).mock(side_effect=_responder)
         ingest_single(W1)  # should not raise
+    with factory() as s:
+        assert s.execute(select(WalletFeature)).scalars().all()  # features computed
+
+
+def test_ingest_single_provider_failure_creates_no_features(db_engine: Engine, monkeypatch) -> None:
+    factory = sessionmaker(bind=db_engine)
+    monkeypatch.setattr(worker_mod, "get_sessionmaker", lambda: factory)
+    monkeypatch.setattr("trust_api.services.ingestion.service.get_settings", lambda: _settings())
+    with respx.mock:
+        respx.get(BASE).mock(
+            return_value=httpx.Response(
+                200, json={"status": "0", "message": "Invalid API Key", "result": "bad"}
+            )
+        )
+        ingest_single(W2)  # provider fails -> no wallet row -> feature refresh is a no-op
+    with factory() as s:
+        assert s.execute(select(WalletFeature)).scalars().all() == []
 
 
 def test_main_once(monkeypatch) -> None:
