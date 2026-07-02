@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from trust_api.schemas.verify import HumanLikelihood, RiskFlag, TrustTier
-from trust_api.services.features import WalletFeatures
+from trust_api.services.features import ActivityFeatures
 from trust_api.services.scoring import score
 
 
 def test_high_scores_map_to_gold_high_no_flags() -> None:
-    assessment = score(WalletFeatures(activity_score=1.0, age_score=1.0, diversity_score=1.0))
+    assessment = score(ActivityFeatures(activity_score=1.0, age_score=1.0, diversity_score=1.0))
     assert assessment.confidence_score == 1.0
     assert assessment.human_likelihood is HumanLikelihood.high
     assert assessment.trust_tier is TrustTier.gold
@@ -16,14 +16,14 @@ def test_high_scores_map_to_gold_high_no_flags() -> None:
 
 
 def test_mid_scores_map_to_silver_medium() -> None:
-    assessment = score(WalletFeatures(activity_score=0.5, age_score=0.5, diversity_score=0.5))
+    assessment = score(ActivityFeatures(activity_score=0.5, age_score=0.5, diversity_score=0.5))
     assert assessment.human_likelihood is HumanLikelihood.medium
     assert assessment.trust_tier is TrustTier.silver
     assert assessment.risk_flags == []
 
 
 def test_low_scores_map_to_bronze_low_with_all_flags() -> None:
-    assessment = score(WalletFeatures(activity_score=0.0, age_score=0.0, diversity_score=0.0))
+    assessment = score(ActivityFeatures(activity_score=0.0, age_score=0.0, diversity_score=0.0))
     assert assessment.confidence_score == 0.0
     assert assessment.human_likelihood is HumanLikelihood.low
     assert assessment.trust_tier is TrustTier.bronze

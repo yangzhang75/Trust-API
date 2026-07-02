@@ -50,7 +50,7 @@ def verify(
 
     # Pipeline: ingestion -> features -> scoring -> proof.
     activity = ingestion.fetch_activity(body.wallet, body.chains)
-    feats = features.compute_features(activity)
+    feats = features.compute_activity_features(activity)
     assessment = scoring.score(feats)
     issued = proof.issue_proof(
         body.wallet, assessment, valid_for_hours=settings.proof_valid_for_hours

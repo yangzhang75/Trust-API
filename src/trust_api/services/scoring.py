@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from trust_api.schemas.verify import HumanLikelihood, RiskFlag, TrustTier
-from trust_api.services.features import WalletFeatures
+from trust_api.services.features import ActivityFeatures
 
 
 @dataclass(frozen=True)
@@ -22,7 +22,7 @@ class TrustAssessment:
     risk_flags: list[RiskFlag]
 
 
-def score(features: WalletFeatures) -> TrustAssessment:
+def score(features: ActivityFeatures) -> TrustAssessment:
     """Score ``features`` into a trust assessment.
 
     TODO(week4): replace with the real scoring model (calibrated ML /
