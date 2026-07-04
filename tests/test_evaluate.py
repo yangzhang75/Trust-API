@@ -107,15 +107,15 @@ def test_evaluate_scores_seeded_wallets(db_session: Session) -> None:
         recency_days=0,
     )
     entries = [
-        {"address": human, "label": "likely_human"},
-        {"address": sybil, "label": "likely_sybil"},
+        {"address": human, "label": "human"},
+        {"address": sybil, "label": "sybil"},
     ]
     rows = ev.evaluate(db_session, entries)
     assert ev.accuracy(rows) == 1.0
 
 
 def test_evaluate_uses_empty_features_when_missing(db_session: Session) -> None:
-    entries = [{"address": "0x" + "9" * 40, "label": "likely_sybil"}]
+    entries = [{"address": "0x" + "9" * 40, "label": "sybil"}]
     rows = ev.evaluate(db_session, entries)
     assert rows[0].predicted_label == "sybil"  # no data -> low -> sybil
 
@@ -193,5 +193,5 @@ def test_prepare_wallet_handles_ingestion_error(db_session: Session) -> None:
 
 def test_load_dataset_reads_committed_file() -> None:
     wallets = ev.load_dataset()
-    assert len(wallets) >= 4
-    assert {w["label"] for w in wallets} == {"likely_human", "likely_sybil"}
+    assert len(wallets) >= 60
+    assert {w["label"] for w in wallets} == {"human", "sybil"}

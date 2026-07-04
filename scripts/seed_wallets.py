@@ -31,24 +31,25 @@ def load_dataset(path: Path = DATASET) -> list[dict]:
     return json.loads(path.read_text(encoding="utf-8"))["wallets"]
 
 
+def _chains(entry: dict) -> list[str]:
+    return entry.get("chains") or ["ethereum"]
+
+
 def seed(session: Session, wallets: list[dict], settings: Settings) -> dict[str, int | None]:
     """Register wallets (always) and ingest their history (if a key is set)."""
     for entry in wallets:
-        chain = Chain(entry.get("chain", "ethereum"))
         # Empty load upserts the wallet row so labels have something to attach to.
-        load_transactions(session, entry["address"], chain, [])
+        load_transactions(session, entry["address"], Chain(_chains(entry)[0]), [])
 
-    eth_addresses = [
-        e["address"] for e in wallets if e.get("chain", "ethereum") == Chain.ethereum.value
-    ]
+    addresses = [e["address"] for e in wallets]
     if not settings.ingestion_provider_configured:
         logger.warning(
             "ETHERSCAN_API_KEY not set; registered %d wallet(s) without tx history",
             len(wallets),
         )
-        return dict.fromkeys(eth_addresses)
+        return dict.fromkeys(addresses)
 
-    return asyncio.run(ingest_wallets(session, eth_addresses, settings=settings))
+    return asyncio.run(ingest_wallets(session, addresses, settings=settings))
 
 
 def main() -> None:  # pragma: no cover

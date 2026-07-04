@@ -23,9 +23,10 @@ def is_valid_evm_wallet(wallet: str) -> bool:
 
 
 class Chain(StrEnum):
-    """Supported chains. Solana (and other non-EVM chains) land in Week 2."""
+    """Supported EVM chains (Etherscan V2 via chainid). Non-EVM chains later."""
 
     ethereum = "ethereum"
+    arbitrum = "arbitrum"
 
 
 class HumanLikelihood(StrEnum):

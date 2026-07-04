@@ -2,9 +2,10 @@
   "components": {
     "schemas": {
       "Chain": {
-        "description": "Supported chains. Solana (and other non-EVM chains) land in Week 2.",
+        "description": "Supported EVM chains (Etherscan V2 via chainid). Non-EVM chains later.",
         "enum": [
-          "ethereum"
+          "ethereum",
+          "arbitrum"
         ],
         "title": "Chain",
         "type": "string"

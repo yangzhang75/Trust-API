@@ -1,114 +1,675 @@
 {
-  "description": "Labeled wallet dataset for scoring validation. Sybil labels are cited to a PUBLIC source (see label_source) — they attribute an existing community/project determination, not an original accusation. Labels are best-available ground truth, not certainty.",
-  "label_legend": {
-    "likely_human": "Behaves like a real, individual human operator (organic, long-lived, diverse activity).",
-    "likely_sybil": "Reported as a bot / airdrop-farming / Sybil address by a cited public source."
+  "description": "Labeled wallet dataset for Sybil-scoring evaluation. Positive class 'human' = doxxed identities or addresses that passed a project's public Sybil filter (NOT verified-human). Negative class 'sybil' = addresses flagged in public Sybil reports. Every entry cites a public label_source.",
+  "sources": {
+    "hop_sybil_report_3": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+    "hop_sybil_report_192": "https://github.com/hop-protocol/hop-airdrop/issues/192",
+    "hop_eligible_list": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+    "etherscan_public_identity": "https://etherscan.io/"
   },
-  "label_basis_legend": {
-    "public_identity": "Well-known public address; identity is widely documented on Etherscan and elsewhere.",
-    "community_sybil_report": "Flagged in a public, methodology-documented Sybil report; label attributes that report."
-  },
-  "known_limitations": [
-    "The Sybil cluster below was flagged for sequential-transfer farming on Arbitrum (L2); our ingestion currently covers Ethereum mainnet only, so their mainnet features may under-represent the L2 Sybil pattern. See docs/scoring-eval.md.",
-    "The human class is small (2 verified public figures). The set is intentionally not padded with unverified addresses. Expanding verified humans is future work.",
-    "No verified 'borderline' category is included yet."
+  "known_biases": [
+    "Source concentration: all entries come from the Hop airdrop ecosystem (bridge users L1<->L2). Not multi-project \u2014 a real limitation.",
+    "L2 skew: farming happened largely on Arbitrum; features must aggregate L1+L2 to be meaningful.",
+    "'human' is a proxy: 'project_vetted_eligible' means 'passed Hop's Sybil filter', which can include sophisticated undetected sybils and some contracts/multisigs. Only the 2 doxxed entries are verified individuals.",
+    "No verified 'borderline' category was available from a citable source, so none is included."
   ],
   "wallets": [
     {
+      "address": "0x007ef4ba7ca41750a097519ab956ca778855564e",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "note": "Sequential-transfer farming cluster reported in Hop airdrop Sybil report #3."
+    },
+    {
+      "address": "0x00805066382c38a722ffcff4ac5ee48cd5f5cda6",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "note": "Sequential-transfer farming cluster reported in Hop airdrop Sybil report #3."
+    },
+    {
+      "address": "0x00e1dcaef873afcc806e3a0a6e6f84f5fdaaf872",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "note": "Sequential-transfer farming cluster reported in Hop airdrop Sybil report #3."
+    },
+    {
+      "address": "0x0104f9e919a655f0efcf5f6f04422d336cddfb86",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "note": "Sequential-transfer farming cluster reported in Hop airdrop Sybil report #3."
+    },
+    {
+      "address": "0x01eb1c517ee268af78e7c627e64432a94d03107b",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "note": "Sequential-transfer farming cluster reported in Hop airdrop Sybil report #3."
+    },
+    {
+      "address": "0x02092c4bf0de252d162c3393dc7c451dedf671b5",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "note": "Sequential-transfer farming cluster reported in Hop airdrop Sybil report #3."
+    },
+    {
+      "address": "0x02525949d8fecf20fd25ed0511e1b35ea4adcd6d",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "note": "Sequential-transfer farming cluster reported in Hop airdrop Sybil report #3."
+    },
+    {
+      "address": "0x02963fdcb358978f8d83de03019637af2545a2b9",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "note": "Sequential-transfer farming cluster reported in Hop airdrop Sybil report #3."
+    },
+    {
+      "address": "0x02a7d44b26eb2d8db454dbf7b9411ca9346cb1fb",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "note": "Sequential-transfer farming cluster reported in Hop airdrop Sybil report #3."
+    },
+    {
+      "address": "0x04c30ce66cea75de5a420f009460d2844c52332e",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "note": "Sequential-transfer farming cluster reported in Hop airdrop Sybil report #3."
+    },
+    {
+      "address": "0x0538799ac9376cdd43c8a4fcb7541f395ddb70a8",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "note": "Sequential-transfer farming cluster reported in Hop airdrop Sybil report #3."
+    },
+    {
+      "address": "0x06a587a3ce06802c4c0e1c500ecea8fc04b1e1b3",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "note": "Sequential-transfer farming cluster reported in Hop airdrop Sybil report #3."
+    },
+    {
+      "address": "0x070e1b421583a570afe9972e206a81c242cb0c6a",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "note": "Sequential-transfer farming cluster reported in Hop airdrop Sybil report #3."
+    },
+    {
+      "address": "0x070eb157db86e53e684051dbf68cebd8768ce179",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "note": "Sequential-transfer farming cluster reported in Hop airdrop Sybil report #3."
+    },
+    {
+      "address": "0x07dd09b3f6ba9ab52f4e030eaf6bca428c888853",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "note": "Sequential-transfer farming cluster reported in Hop airdrop Sybil report #3."
+    },
+    {
+      "address": "0x01879d7812ecab6bf9f5a8296c705fb9655567b5",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/192",
+      "note": "Farming cluster reported in Hop airdrop Sybil report #192."
+    },
+    {
+      "address": "0x02efe1b343ec10e06145c078018ec934e4065909",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/192",
+      "note": "Farming cluster reported in Hop airdrop Sybil report #192."
+    },
+    {
+      "address": "0x0344a63078990ed676195d3019333b372f01e7fe",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/192",
+      "note": "Farming cluster reported in Hop airdrop Sybil report #192."
+    },
+    {
+      "address": "0x05a7b63d048364ee3eb98c87a2bb00645e4e66a4",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/192",
+      "note": "Farming cluster reported in Hop airdrop Sybil report #192."
+    },
+    {
+      "address": "0x0641bf0bce70edf0446347a9a1039113b317b717",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/192",
+      "note": "Farming cluster reported in Hop airdrop Sybil report #192."
+    },
+    {
+      "address": "0x0764b980e6b5611320a15534b368c4624742d163",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/192",
+      "note": "Farming cluster reported in Hop airdrop Sybil report #192."
+    },
+    {
+      "address": "0x07b3e12359a738171e2872f4db665fe91bcbadbe",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/192",
+      "note": "Farming cluster reported in Hop airdrop Sybil report #192."
+    },
+    {
+      "address": "0x07e0cb436908f0ef0164ac0d3624f7ca677592e6",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/192",
+      "note": "Farming cluster reported in Hop airdrop Sybil report #192."
+    },
+    {
+      "address": "0x09a2ff8bca533a3096e05fc11b846bc1b3487a82",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/192",
+      "note": "Farming cluster reported in Hop airdrop Sybil report #192."
+    },
+    {
+      "address": "0x0a6abe2267ece75b0d26048e860ac1f6f763d360",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/192",
+      "note": "Farming cluster reported in Hop airdrop Sybil report #192."
+    },
+    {
+      "address": "0x0a8b3a2601dac023fc58d3e514a3418a6430a020",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/192",
+      "note": "Farming cluster reported in Hop airdrop Sybil report #192."
+    },
+    {
+      "address": "0x0ba7d33a9e6ef0a9695789d689098bee77c70c7b",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/192",
+      "note": "Farming cluster reported in Hop airdrop Sybil report #192."
+    },
+    {
+      "address": "0x0bc4d7c6fc94647f4c7423c06bcf3a0fe968577c",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/192",
+      "note": "Farming cluster reported in Hop airdrop Sybil report #192."
+    },
+    {
+      "address": "0x0be9e2ced9cad3e7d430efdc8a4db59f3c198f75",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/192",
+      "note": "Farming cluster reported in Hop airdrop Sybil report #192."
+    },
+    {
+      "address": "0x0c001fe3dfe96506013af3fecd6d4d438f7e1b8f",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/192",
+      "note": "Farming cluster reported in Hop airdrop Sybil report #192."
+    },
+    {
       "address": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-      "label": "likely_human",
-      "chain": "ethereum",
+      "chains": [
+        "ethereum"
+      ],
+      "label": "human",
       "label_basis": "public_identity",
       "label_source": "https://etherscan.io/address/0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
-      "reason": "vitalik.eth — many years of organic activity, ENS identity, highly diverse counterparties and contract interactions."
+      "note": "vitalik.eth \u2014 long-lived, diverse organic activity."
     },
     {
       "address": "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B",
-      "label": "likely_human",
-      "chain": "ethereum",
+      "chains": [
+        "ethereum"
+      ],
+      "label": "human",
       "label_basis": "public_identity",
       "label_source": "https://etherscan.io/address/0xab5801a7d398351b8be11c439e05c5b3259aec9b",
-      "reason": "A second well-known Vitalik Buterin address ('Vb') — long, organic, multi-year history."
+      "note": "Second well-known Vitalik Buterin address ('Vb')."
     },
     {
-      "address": "0x99c5591664b10d5655ef32102b1Fe974d4c76923",
-      "label": "likely_sybil",
-      "chain": "ethereum",
-      "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
-      "reason": "Part of a 516-address sequential-transfer farming cluster on Arbitrum flagged in the Hop airdrop Sybil report #3."
+      "address": "0x0000a240a748224a0602b52814145b7a3ad55ef0",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
     },
     {
-      "address": "0x77a1e52c129f446a8e7c75fa5ac21a170e82a72f",
-      "label": "likely_sybil",
-      "chain": "ethereum",
-      "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
-      "reason": "Sequential-transfer farming cluster (Hop airdrop Sybil report #3)."
+      "address": "0x091c22b75c478726f6752fcca80d56e612c11d53",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
     },
     {
-      "address": "0xb64d7e6477c7e8b36e2e71707fa850fcb18319bc",
-      "label": "likely_sybil",
-      "chain": "ethereum",
-      "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
-      "reason": "Sequential-transfer farming cluster (Hop airdrop Sybil report #3)."
+      "address": "0x123a3c28eb9e701c173d3a73412489f3554f3005",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
     },
     {
-      "address": "0xa0e9fd91a818ed300445e96665addca599d9fb0c",
-      "label": "likely_sybil",
-      "chain": "ethereum",
-      "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
-      "reason": "Sequential-transfer farming cluster (Hop airdrop Sybil report #3)."
+      "address": "0x1b56eb67f280add7cfe89727aca1134274443a39",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
     },
     {
-      "address": "0xd45bea9aa43474555ec40bdae731e46a15224796",
-      "label": "likely_sybil",
-      "chain": "ethereum",
-      "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
-      "reason": "Sequential-transfer farming cluster (Hop airdrop Sybil report #3)."
+      "address": "0x23f32d04d3b73c382646009cbef741e0f6f1d31d",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
     },
     {
-      "address": "0x861738015bafa423811e6c23df0218e442493e60",
-      "label": "likely_sybil",
-      "chain": "ethereum",
-      "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
-      "reason": "Sequential-transfer farming cluster (Hop airdrop Sybil report #3)."
+      "address": "0x2d05f736cbfef5f1e84b097e09d48575e8995848",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
     },
     {
-      "address": "0x6817aca4195f255d2614aae656c0b54ec3864ccb",
-      "label": "likely_sybil",
-      "chain": "ethereum",
-      "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
-      "reason": "Sequential-transfer farming cluster (Hop airdrop Sybil report #3)."
+      "address": "0x364a9ec91951995d6e54e7351121bd4d4cdacc7a",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
     },
     {
-      "address": "0xcd01973bbae0c81b5be7171dcba950d1a3ce2000",
-      "label": "likely_sybil",
-      "chain": "ethereum",
-      "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
-      "reason": "Sequential-transfer farming cluster (Hop airdrop Sybil report #3)."
+      "address": "0x3fa38a6a32827c0a7e9a30ee2bbbe5b6c83b8772",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
     },
     {
-      "address": "0x245a9bd20d1811893ea11984429f52486c32404b",
-      "label": "likely_sybil",
-      "chain": "ethereum",
-      "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
-      "reason": "Sequential-transfer farming cluster (Hop airdrop Sybil report #3)."
+      "address": "0x4807c2c7b2650038633c844bd29dbde8c4fa6b3d",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
     },
     {
-      "address": "0xcdf10dde8a08b28e1ae29547e62d7068b8e6fd24",
-      "label": "likely_sybil",
-      "chain": "ethereum",
-      "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
-      "reason": "Sequential-transfer farming cluster (Hop airdrop Sybil report #3)."
+      "address": "0x5106ded01d5197ee6d7c37e32f8d438899766fba",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
+    },
+    {
+      "address": "0x59fa204f4d7a117845f0215079c31125d1b8236f",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
+    },
+    {
+      "address": "0x630adf6a84a3789b6cd711f0a465e42b792664c7",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
+    },
+    {
+      "address": "0x6c53b1b42a2f868ee844d174090a4ab19c80acea",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
+    },
+    {
+      "address": "0x7605a685aaa76bc65ac6799627eca70d5966a10d",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
+    },
+    {
+      "address": "0x7f6913e7d97442823cc99cc1523ab463618b780e",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
+    },
+    {
+      "address": "0x88fc3f3b865a015c5b63572716a534325ba8be6d",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
+    },
+    {
+      "address": "0x924a17f54f5149975b5c80c2c201703ecc53ed4b",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
+    },
+    {
+      "address": "0x9b758a472c627504119e2dd6a7ed650647270e37",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
+    },
+    {
+      "address": "0xa49b8c71964aba7b31c08757e1c50722096ef7b1",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
+    },
+    {
+      "address": "0xad6859bfe880f46a4673fd8fa8e8808f77fcde11",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
+    },
+    {
+      "address": "0xb70ae0bbf799c0638a6f59cec37af20a2503ad91",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
+    },
+    {
+      "address": "0xbf932c5245b2e1f8bba78c27c9ecd0423fc5586e",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
+    },
+    {
+      "address": "0xc8f0c3cf27c6f62a2355456d0181aeea6923adb6",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
+    },
+    {
+      "address": "0xd25322e482338fb2186e719725c2836aff8a1c8a",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
+    },
+    {
+      "address": "0xdb2bccfb0428f6384f6571d4df48a639b593d15b",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
+    },
+    {
+      "address": "0xe46bfc3ac7743e2d693d60ebad719525634e23e4",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
+    },
+    {
+      "address": "0xede7a11067efba20b5161c8a9e97ecda67d77e76",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
+    },
+    {
+      "address": "0xf6fe9679254698bd5e32cd02f830b9725e703937",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "human",
+      "label_basis": "project_vetted_eligible",
+      "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
+      "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample."
     }
   ]
 }

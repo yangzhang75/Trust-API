@@ -29,7 +29,7 @@ from trust_api.services.scoring import score
 logger = get_logger(__name__)
 
 DATASET = Path(__file__).resolve().parent.parent.parent.parent / "data" / "labeled_wallets.json"
-LABEL_TO_CLASS = {"likely_human": "human", "likely_sybil": "sybil"}
+LABEL_TO_CLASS = {"human": "human", "sybil": "sybil"}
 CLASSES = ("human", "sybil")
 
 
