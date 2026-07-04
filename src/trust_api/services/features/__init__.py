@@ -7,7 +7,7 @@ consumes them.
 
 from __future__ import annotations
 
-from trust_api.services.features.models import WalletFeatures
+from trust_api.services.features.models import EMPTY_FEATURES, WalletFeatures
 from trust_api.services.features.service import (
     all_wallet_ids_with_transactions,
     compute_features,
@@ -15,6 +15,7 @@ from trust_api.services.features.service import (
 )
 
 __all__ = [
+    "EMPTY_FEATURES",
     "WalletFeatures",
     "all_wallet_ids_with_transactions",
     "compute_features",

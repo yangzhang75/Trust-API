@@ -22,36 +22,18 @@ from trust_api.core.logging import get_logger
 from trust_api.db.models import Wallet, WalletFeature
 from trust_api.db.session import get_db
 from trust_api.schemas.verify import (
-    Chain,
     ErrorResponse,
     VerifyRequest,
     VerifyResponse,
     is_valid_evm_wallet,
 )
 from trust_api.services import proof
-from trust_api.services.features import WalletFeatures, compute_features
+from trust_api.services.features import EMPTY_FEATURES, WalletFeatures, compute_features
 from trust_api.services.ingestion import IngestionError, ingest_wallet
 from trust_api.services.scoring import score
 
 router = APIRouter()
 logger = get_logger(__name__)
-
-# Neutral, all-zero features used when a wallet has no data (and none can be
-# fetched). Scored deterministically -> low trust with the expected flags.
-_EMPTY_FEATURES = WalletFeatures(
-    wallet_id=0,
-    chain=Chain.ethereum.value,
-    wallet_age_days=0,
-    tx_count=0,
-    active_days=0,
-    tx_per_active_day=0.0,
-    counterparty_count=0,
-    counterparty_diversity_ratio=0.0,
-    inbound_ratio=0.0,
-    burst_score=0,
-    dormancy_flag=False,
-    recency_days=0,
-)
 
 
 def _query_features(db: Session, wallet_address: str) -> WalletFeature | None:
@@ -109,7 +91,7 @@ def verify(
             detail="Invalid wallet address; expected an EVM address (^0x[a-fA-F0-9]{40}$).",
         )
 
-    features = _resolve_features(db, body.wallet, settings) or _EMPTY_FEATURES
+    features = _resolve_features(db, body.wallet, settings) or EMPTY_FEATURES
     result = score(features)
     issued = proof.issue_proof(body.wallet, result, valid_for_hours=settings.proof_valid_for_hours)
 
