@@ -31,9 +31,9 @@ from trust_api.services.ingestion.errors import (
 
 logger = get_logger(__name__)
 
-# Etherscan V2 chain ids. Only ethereum is enabled in Week 2; the registry
-# is the single place additional chains plug in later (e.g. polygon=137).
-_CHAIN_IDS: dict[Chain, int] = {Chain.ethereum: 1}
+# Etherscan V2 chain ids. One API key works across all of them via the
+# `chainid` parameter; this registry is the single place chains plug in.
+_CHAIN_IDS: dict[Chain, int] = {Chain.ethereum: 1, Chain.arbitrum: 42161}
 
 _RATE_LIMIT_MARKERS = ("max rate limit reached", "rate limit")
 

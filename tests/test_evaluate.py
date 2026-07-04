@@ -149,20 +149,27 @@ def test_prepare_wallet_skips_without_provider(db_session: Session) -> None:
 
 
 @respx.mock
-def test_prepare_wallet_ingests_when_provider_set(db_session: Session) -> None:
+def test_prepare_wallet_ingests_all_chains(db_session: Session) -> None:
+    from sqlalchemy import select
+
+    from trust_api.db.models import WalletTransaction
+
     addr = "0x52908400098527886E0F7030069857D2E4169EE7"
-    raw = {
-        "hash": "0x" + "e" * 64,
-        "from": addr.lower(),
-        "to": "0x000000000000000000000000000000000000dead",
-        "value": "1",
-        "timeStamp": "1700000000",
-        "blockNumber": "18000000",
-        "contractAddress": "",
-    }
-    respx.get(PROVIDER_BASE).mock(
-        return_value=httpx.Response(200, json={"status": "1", "message": "OK", "result": [raw]})
-    )
+
+    def responder(request: httpx.Request) -> httpx.Response:
+        chainid = request.url.params.get("chainid")
+        raw = {
+            "hash": "0x" + chainid.rjust(64, "0"),  # distinct tx hash per chain
+            "from": addr.lower(),
+            "to": "0x000000000000000000000000000000000000dead",
+            "value": "1",
+            "timeStamp": "1700000000",
+            "blockNumber": "18000000",
+            "contractAddress": "",
+        }
+        return httpx.Response(200, json={"status": "1", "message": "OK", "result": [raw]})
+
+    respx.get(PROVIDER_BASE).mock(side_effect=responder)
     settings = Settings(
         etherscan_api_key="k",
         etherscan_base_url=PROVIDER_BASE,
@@ -170,7 +177,10 @@ def test_prepare_wallet_ingests_when_provider_set(db_session: Session) -> None:
         ingestion_cache_ttl_seconds=0,
     )
     ev.prepare_wallet(db_session, addr, settings)
+
     assert ev._features_row(db_session, addr) is not None
+    chains = set(db_session.execute(select(WalletTransaction.chain).distinct()).scalars().all())
+    assert chains == {"ethereum", "arbitrum"}  # both L1 and L2 ingested
 
 
 @respx.mock

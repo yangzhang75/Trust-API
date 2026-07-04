@@ -171,5 +171,16 @@ async def test_request_without_initialized_client_raises() -> None:
         await client.get_normal_transactions(ADDR, Chain.ethereum)
 
 
-def test_supports_only_ethereum() -> None:
+def test_supports_ethereum_and_arbitrum() -> None:
     assert EtherscanClient.supports(Chain.ethereum) is True
+    assert EtherscanClient.supports(Chain.arbitrum) is True
+
+
+@respx.mock
+async def test_chainid_param_matches_chain() -> None:
+    route = respx.get(BASE).mock(return_value=httpx.Response(200, json=_txlist()))
+    async with EtherscanClient(_settings()) as client:
+        await client.get_normal_transactions(ADDR, Chain.ethereum)
+        await client.get_normal_transactions(ADDR, Chain.arbitrum)
+    assert route.calls[0].request.url.params["chainid"] == "1"  # ethereum
+    assert route.calls[1].request.url.params["chainid"] == "42161"  # arbitrum

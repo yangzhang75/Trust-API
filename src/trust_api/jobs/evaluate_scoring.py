@@ -21,10 +21,12 @@ from trust_api.config import Settings, get_settings
 from trust_api.core.logging import configure_logging, get_logger
 from trust_api.db.models import Wallet, WalletFeature
 from trust_api.db.session import get_sessionmaker
-from trust_api.schemas.verify import HumanLikelihood
+from trust_api.schemas.verify import Chain, HumanLikelihood
 from trust_api.services.features import EMPTY_FEATURES, compute_features
 from trust_api.services.ingestion import IngestionError, ingest_wallet
 from trust_api.services.scoring import score
+
+INGEST_CHAINS = (Chain.ethereum, Chain.arbitrum)
 
 logger = get_logger(__name__)
 
@@ -64,17 +66,21 @@ def _features_row(session: Session, address: str) -> WalletFeature | None:
 
 
 def prepare_wallet(session: Session, address: str, settings: Settings, *, now=None) -> None:
-    """Ingest + compute features for a wallet if missing and provider is set."""
+    """Ingest all chains + compute features for a wallet if missing and provider set."""
     if _features_row(session, address) is not None:
         return
     if not settings.ingestion_provider_configured:
         return
-    try:
-        result = asyncio.run(ingest_wallet(session, address, settings=settings))
-        compute_features(session, result.wallet_id, now=now)
-    except IngestionError as exc:
-        logger.warning("ingest failed for %s: %s", address, exc)
-        session.rollback()
+    wallet_id: int | None = None
+    for chain in INGEST_CHAINS:
+        try:
+            result = asyncio.run(ingest_wallet(session, address, chain, settings=settings))
+            wallet_id = result.wallet_id
+        except IngestionError as exc:
+            logger.warning("ingest failed for %s on %s: %s", address, chain, exc)
+            session.rollback()
+    if wallet_id is not None:
+        compute_features(session, wallet_id, now=now)  # aggregates across chains
 
 
 def evaluate(session: Session, entries: list[dict]) -> list[EvalRow]:
