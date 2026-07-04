@@ -1,48 +1,114 @@
 {
-  "description": "Small labeled wallet dataset for ingestion + (Week 4) scoring validation. Labels are NOT ground truth; see label_basis on each entry.",
+  "description": "Labeled wallet dataset for scoring validation. Sybil labels are cited to a PUBLIC source (see label_source) — they attribute an existing community/project determination, not an original accusation. Labels are best-available ground truth, not certainty.",
   "label_legend": {
-    "likely_human": "Behaves like a real, individual human operator.",
-    "likely_sybil": "Behaves like a bot / airdrop-farming / Sybil wallet."
+    "likely_human": "Behaves like a real, individual human operator (organic, long-lived, diverse activity).",
+    "likely_sybil": "Reported as a bot / airdrop-farming / Sybil address by a cited public source."
   },
   "label_basis_legend": {
-    "public_identity": "Well-known public address; the human label is widely documented.",
-    "illustrative_synthetic": "Placeholder address chosen to illustrate a pattern. NOT a real accusation; to be replaced with a verified labeled set (e.g. a public airdrop Sybil post-mortem) before Week 4 scoring validation."
+    "public_identity": "Well-known public address; identity is widely documented on Etherscan and elsewhere.",
+    "community_sybil_report": "Flagged in a public, methodology-documented Sybil report; label attributes that report."
   },
+  "known_limitations": [
+    "The Sybil cluster below was flagged for sequential-transfer farming on Arbitrum (L2); our ingestion currently covers Ethereum mainnet only, so their mainnet features may under-represent the L2 Sybil pattern. See docs/scoring-eval.md.",
+    "The human class is small (2 verified public figures). The set is intentionally not padded with unverified addresses. Expanding verified humans is future work.",
+    "No verified 'borderline' category is included yet."
+  ],
   "wallets": [
     {
       "address": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
       "label": "likely_human",
       "chain": "ethereum",
       "label_basis": "public_identity",
-      "reason": "vitalik.eth — many years of activity, ENS identity, highly diverse counterparties and contract interactions; a clear individual human operator."
+      "label_source": "https://etherscan.io/address/0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+      "reason": "vitalik.eth — many years of organic activity, ENS identity, highly diverse counterparties and contract interactions."
     },
     {
       "address": "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B",
       "label": "likely_human",
       "chain": "ethereum",
       "label_basis": "public_identity",
-      "reason": "A second well-known Vitalik Buterin address — long, organic, multi-year history."
+      "label_source": "https://etherscan.io/address/0xab5801a7d398351b8be11c439e05c5b3259aec9b",
+      "reason": "A second well-known Vitalik Buterin address ('Vb') — long, organic, multi-year history."
     },
     {
-      "address": "0x000000000000000000000000000000000000dEaD",
+      "address": "0x99c5591664b10d5655ef32102b1Fe974d4c76923",
       "label": "likely_sybil",
       "chain": "ethereum",
-      "label_basis": "illustrative_synthetic",
-      "reason": "Burn/sink address — not a human operator. Used as a clear non-human negative example."
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "reason": "Part of a 516-address sequential-transfer farming cluster on Arbitrum flagged in the Hop airdrop Sybil report #3."
     },
     {
-      "address": "0x1111111111111111111111111111111111111111",
+      "address": "0x77a1e52c129f446a8e7c75fa5ac21a170e82a72f",
       "label": "likely_sybil",
       "chain": "ethereum",
-      "label_basis": "illustrative_synthetic",
-      "reason": "Illustrative freshly-created burst wallet: short lifespan, single funding source, repetitive low-value txs to qualify for an airdrop. Placeholder — replace with a verified Sybil address before scoring validation."
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "reason": "Sequential-transfer farming cluster (Hop airdrop Sybil report #3)."
     },
     {
-      "address": "0x2222222222222222222222222222222222222222",
+      "address": "0xb64d7e6477c7e8b36e2e71707fa850fcb18319bc",
       "label": "likely_sybil",
       "chain": "ethereum",
-      "label_basis": "illustrative_synthetic",
-      "reason": "Illustrative airdrop-farming wallet in a cluster funded from one parent, low counterparty diversity. Placeholder — replace with a verified Sybil address before scoring validation."
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "reason": "Sequential-transfer farming cluster (Hop airdrop Sybil report #3)."
+    },
+    {
+      "address": "0xa0e9fd91a818ed300445e96665addca599d9fb0c",
+      "label": "likely_sybil",
+      "chain": "ethereum",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "reason": "Sequential-transfer farming cluster (Hop airdrop Sybil report #3)."
+    },
+    {
+      "address": "0xd45bea9aa43474555ec40bdae731e46a15224796",
+      "label": "likely_sybil",
+      "chain": "ethereum",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "reason": "Sequential-transfer farming cluster (Hop airdrop Sybil report #3)."
+    },
+    {
+      "address": "0x861738015bafa423811e6c23df0218e442493e60",
+      "label": "likely_sybil",
+      "chain": "ethereum",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "reason": "Sequential-transfer farming cluster (Hop airdrop Sybil report #3)."
+    },
+    {
+      "address": "0x6817aca4195f255d2614aae656c0b54ec3864ccb",
+      "label": "likely_sybil",
+      "chain": "ethereum",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "reason": "Sequential-transfer farming cluster (Hop airdrop Sybil report #3)."
+    },
+    {
+      "address": "0xcd01973bbae0c81b5be7171dcba950d1a3ce2000",
+      "label": "likely_sybil",
+      "chain": "ethereum",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "reason": "Sequential-transfer farming cluster (Hop airdrop Sybil report #3)."
+    },
+    {
+      "address": "0x245a9bd20d1811893ea11984429f52486c32404b",
+      "label": "likely_sybil",
+      "chain": "ethereum",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "reason": "Sequential-transfer farming cluster (Hop airdrop Sybil report #3)."
+    },
+    {
+      "address": "0xcdf10dde8a08b28e1ae29547e62d7068b8e6fd24",
+      "label": "likely_sybil",
+      "chain": "ethereum",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
+      "reason": "Sequential-transfer farming cluster (Hop airdrop Sybil report #3)."
     }
   ]
 }

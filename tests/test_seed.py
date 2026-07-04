@@ -26,6 +26,7 @@ def test_dataset_is_well_formed() -> None:
         assert entry["label"] in VALID_LABELS
         assert entry["reason"].strip()
         assert "label_basis" in entry
+        assert entry["label_source"].startswith("http")  # every label cites a source
     # Has both classes represented.
     labels = {e["label"] for e in wallets}
     assert labels == VALID_LABELS
