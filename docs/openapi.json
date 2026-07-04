@@ -66,11 +66,13 @@
         "type": "object"
       },
       "RiskFlag": {
-        "description": "Risk signals attached to an assessment.\n\nWeek 1 emits a deterministic subset derived from the wallet hash; real\ndetectors (mixer exposure, Sybil clustering, sanctions) arrive later.",
+        "description": "Risk signals attached to an assessment (Week 4: emitted by real rules).",
         "enum": [
           "new_wallet",
           "low_activity",
           "low_counterparty_diversity",
+          "bot_burst",
+          "dormant",
           "sybil_suspected"
         ],
         "title": "RiskFlag",
@@ -205,7 +207,7 @@
     },
     "/verify": {
       "post": {
-        "description": "Run the (stubbed) trust pipeline and return a deterministic result.",
+        "description": "Resolve features, score them with the rule engine, and return the result.",
         "operationId": "verify_verify_post",
         "requestBody": {
           "content": {

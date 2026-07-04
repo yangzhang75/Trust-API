@@ -45,15 +45,13 @@ class TrustTier(StrEnum):
 
 
 class RiskFlag(StrEnum):
-    """Risk signals attached to an assessment.
-
-    Week 1 emits a deterministic subset derived from the wallet hash; real
-    detectors (mixer exposure, Sybil clustering, sanctions) arrive later.
-    """
+    """Risk signals attached to an assessment (Week 4: emitted by real rules)."""
 
     new_wallet = "new_wallet"
     low_activity = "low_activity"
     low_counterparty_diversity = "low_counterparty_diversity"
+    bot_burst = "bot_burst"
+    dormant = "dormant"
     sybil_suspected = "sybil_suspected"
 
 

@@ -22,4 +22,4 @@ class WalletFeatures:
     burst_score: int
     dormancy_flag: bool
     recency_days: int
-    computed_at: datetime
+    computed_at: datetime | None = None

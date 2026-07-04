@@ -1,15 +1,11 @@
-"""Ingestion subsystem.
+"""Ingestion subsystem — real on-chain transaction ingestion (Week 2).
 
-Public surface kept stable for the rest of the app:
-  * `WalletActivity` / `fetch_activity` — the deterministic stub feeding the
-    still-stubbed features/scoring stages (Week 1 behavior, unchanged).
-  * `Transaction`, the provider client, and typed errors — the real Week 2
-    ingestion path (driven by the worker / seed / ETL).
+Exposes the provider client, the normalized `Transaction` DTO, typed
+errors, and the fetch/ETL entry points used by the worker, seed, and jobs.
 """
 
 from __future__ import annotations
 
-from trust_api.services.ingestion.activity import fetch_activity
 from trust_api.services.ingestion.errors import (
     DataUnavailableError,
     IngestionError,
@@ -18,7 +14,7 @@ from trust_api.services.ingestion.errors import (
     ProviderTimeoutError,
 )
 from trust_api.services.ingestion.load import LoadResult, load_transactions
-from trust_api.services.ingestion.models import Transaction, WalletActivity
+from trust_api.services.ingestion.models import Transaction
 from trust_api.services.ingestion.provider import EtherscanClient
 from trust_api.services.ingestion.service import fetch_wallet_history, ingest_wallet
 from trust_api.services.ingestion.transform import normalize_transactions
@@ -32,8 +28,6 @@ __all__ = [
     "ProviderRateLimitedError",
     "ProviderTimeoutError",
     "Transaction",
-    "WalletActivity",
-    "fetch_activity",
     "fetch_wallet_history",
     "ingest_wallet",
     "load_transactions",

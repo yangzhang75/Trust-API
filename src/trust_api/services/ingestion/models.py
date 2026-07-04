@@ -1,8 +1,6 @@
-"""Internal DTOs for the ingestion subsystem.
+"""Internal DTO for the ingestion subsystem.
 
-`Transaction` is the normalized record produced by the ETL transform step;
-`WalletActivity` is the coarse, privacy-preserving summary the downstream
-features stage consumes (unchanged from Week 1).
+`Transaction` is the normalized record produced by the ETL transform step.
 """
 
 from __future__ import annotations
@@ -27,18 +25,3 @@ class Transaction:
     value_wei: int
     direction: str  # "in" | "out" | "self"
     counterparty: str
-
-
-@dataclass(frozen=True)
-class WalletActivity:
-    """Coarse, privacy-preserving activity summary (internal DTO).
-
-    Never carries raw transaction data downstream.
-    """
-
-    wallet: str
-    chains: tuple[Chain, ...]
-    seed: int
-    tx_count: int
-    account_age_days: int
-    unique_counterparties: int

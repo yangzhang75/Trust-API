@@ -2,22 +2,24 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
+import httpx
+import respx
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from tests.conftest import TEST_API_KEY
 from trust_api.config import Settings
-from trust_api.db.models import Wallet
+from trust_api.db.models import Wallet, WalletFeature
 from trust_api.db.session import get_db
 from trust_api.main import create_app
-from trust_api.services.features import compute_features
 
 VALID_WALLET = "0x52908400098527886E0F7030069857D2E4169EE7"
 AUTH = {"X-API-Key": TEST_API_KEY}
+PROVIDER_BASE = "https://api.etherscan.io/v2/api"
 
 
 def _db_client(db) -> TestClient:
@@ -88,28 +90,84 @@ def test_verify_invalid_api_key_returns_401(client: TestClient) -> None:
     assert resp.status_code == 401
 
 
-# --- Week 3: stub-safe wiring of stored features into /verify ---
+# --- Week 4: real scoring wired into /verify (contract unchanged) ---
 
 
-def test_verify_reads_stored_features_but_output_stays_stub(db_session: Session) -> None:
+def test_verify_scores_high_for_strong_stored_features(db_session: Session) -> None:
     w = Wallet(address=VALID_WALLET)
     db_session.add(w)
     db_session.flush()
-    compute_features(db_session, w.id, now=datetime(2026, 1, 1, tzinfo=UTC))
+    db_session.add(
+        WalletFeature(
+            wallet_id=w.id,
+            chain="ethereum",
+            payload={},
+            wallet_age_days=800,
+            tx_count=500,
+            active_days=120,
+            tx_per_active_day=4.0,
+            counterparty_count=300,
+            counterparty_diversity_ratio=0.6,
+            inbound_ratio=0.5,
+            burst_score=3,
+            dormancy_flag=False,
+            recency_days=1,
+        )
+    )
+    db_session.commit()
 
-    resp = _db_client(db_session).post("/verify", json={"wallet": VALID_WALLET}, headers=AUTH)
-    assert resp.status_code == 200
-    # Output is still the deterministic stub — reading features didn't change it.
-    assert resp.json()["confidence_score"] == 0.6703
+    body = (
+        _db_client(db_session).post("/verify", json={"wallet": VALID_WALLET}, headers=AUTH).json()
+    )
+    assert body["human_likelihood"] == "high"
+    assert body["trust_tier"] == "gold"
+    assert body["risk_flags"] == []
 
 
-def test_verify_works_when_no_features_row(db_session: Session) -> None:
-    resp = _db_client(db_session).post("/verify", json={"wallet": VALID_WALLET}, headers=AUTH)
-    assert resp.status_code == 200
+def test_verify_scores_low_when_no_data(db_session: Session) -> None:
+    # No features row, no provider configured -> neutral features -> low trust.
+    body = (
+        _db_client(db_session).post("/verify", json={"wallet": VALID_WALLET}, headers=AUTH).json()
+    )
+    assert body["human_likelihood"] == "low"
+    assert body["trust_tier"] == "bronze"
 
 
-def test_verify_degrades_to_stub_on_db_error() -> None:
+def test_verify_degrades_to_neutral_on_db_error() -> None:
     broken = MagicMock()
     broken.execute.side_effect = SQLAlchemyError("db down")
     resp = _db_client(broken).post("/verify", json={"wallet": VALID_WALLET}, headers=AUTH)
     assert resp.status_code == 200  # DB failure must not break /verify
+    assert resp.json()["human_likelihood"] == "low"
+
+
+@respx.mock
+def test_verify_ingests_on_miss_when_provider_configured(db_session: Session) -> None:
+    raw = {
+        "hash": "0x" + "e" * 64,
+        "from": VALID_WALLET.lower(),
+        "to": "0x000000000000000000000000000000000000dead",
+        "value": "1",
+        "timeStamp": "1700000000",
+        "blockNumber": "18000000",
+        "contractAddress": "",
+    }
+    respx.get(PROVIDER_BASE).mock(
+        return_value=httpx.Response(200, json={"status": "1", "message": "OK", "result": [raw]})
+    )
+    app = create_app(
+        Settings(
+            api_keys=TEST_API_KEY,
+            rate_limit_per_minute=1000,
+            environment="test",
+            etherscan_api_key="k",
+            etherscan_base_url=PROVIDER_BASE,
+            ingestion_backoff_seconds=0,
+            ingestion_cache_ttl_seconds=0,
+        )
+    )
+    app.dependency_overrides[get_db] = lambda: db_session
+    resp = TestClient(app).post("/verify", json={"wallet": VALID_WALLET}, headers=AUTH)
+    assert resp.status_code == 200
+    # Features were ingested + computed on demand.
+    assert db_session.execute(select(WalletFeature)).scalars().all()

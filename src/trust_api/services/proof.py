@@ -10,10 +10,10 @@ import hashlib
 from datetime import UTC, datetime, timedelta
 
 from trust_api.schemas.verify import Proof
-from trust_api.services.scoring import TrustAssessment
+from trust_api.services.scoring import ScoringResult
 
 
-def _stub_signature(wallet: str, assessment: TrustAssessment, issued_at: datetime) -> str:
+def _stub_signature(wallet: str, assessment: ScoringResult, issued_at: datetime) -> str:
     """Deterministic placeholder signature over the assessment payload."""
     payload = "|".join(
         [
@@ -30,7 +30,7 @@ def _stub_signature(wallet: str, assessment: TrustAssessment, issued_at: datetim
 
 def issue_proof(
     wallet: str,
-    assessment: TrustAssessment,
+    assessment: ScoringResult,
     valid_for_hours: int,
     *,
     now: datetime | None = None,
