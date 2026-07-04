@@ -26,6 +26,18 @@ def _row(true: str, pred: str) -> ev.EvalRow:
     )
 
 
+def _addr_row(address: str, true: str) -> ev.EvalRow:
+    return ev.EvalRow(
+        address=address,
+        true_label=true,
+        predicted_label="human",
+        human_likelihood="high",
+        trust_tier="gold",
+        confidence=0.9,
+        risk_flags=[],
+    )
+
+
 # --- pure metric functions ------------------------------------------------
 
 
@@ -54,14 +66,28 @@ def test_precision_recall() -> None:
     assert ev.precision_recall([], "sybil") == (0.0, 0.0)
 
 
-def test_render_markdown_contains_key_sections() -> None:
-    md = ev.render_markdown([_row("human", "human"), _row("sybil", "sybil")], note="test run")
+def test_render_report_contains_key_sections() -> None:
+    test_rows = [_row("human", "human"), _row("sybil", "sybil")]
+    train_rows = [_row("human", "human")]
+    md = ev.render_report(test_rows, train_rows, note="test run")
     assert "# Scoring Evaluation" in md
+    assert "TEST split" in md
+    assert "TRAIN split" in md
     assert "Confusion matrix" in md
-    assert "Per-class metrics" in md
     assert "Per-wallet predictions" in md
-    assert "100.00%" in md
     assert "limitations" in md.lower()
+
+
+def test_split_rows_partitions_by_committed_split() -> None:
+    # Build rows for the real dataset addresses, then split.
+    entries = ev.load_dataset()
+    rows = [_addr_row(e["address"], e["label"]) for e in entries]
+    train, test = ev.split_rows(rows)
+    assert len(train) + len(test) == len(rows)
+    train_addrs = {r.address.lower() for r in train}
+    test_addrs = {r.address.lower() for r in test}
+    assert train_addrs.isdisjoint(test_addrs)
+    assert train and test
 
 
 # --- evaluate against seeded features (no network) ------------------------
