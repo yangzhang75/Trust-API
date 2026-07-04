@@ -123,8 +123,8 @@ All settings are read from the environment (see [`.env.example`](.env.example)):
 
 ## Blockchain data ingestion (Week 2)
 
-A real ingestion service fetches a wallet's Ethereum transaction history
-from **Etherscan (V2 unified API)** and stores it in Postgres via an
+A real ingestion service fetches a wallet's transaction history across
+**Ethereum and Arbitrum** from **Etherscan (V2 unified API)** and stores it in Postgres via an
 idempotent ETL pipeline, driven by a background worker. See
 [`docs/ingestion.md`](docs/ingestion.md) for the provider rationale, ETL
 flow, and data model.
@@ -171,10 +171,14 @@ docs/                # architecture, ingestion, features, scoring, scoring-eval,
 
 `/verify` returns real scores from a transparent, deterministic rule
 engine (no ML) — see [`docs/scoring.md`](docs/scoring.md) for every rule,
-weight, and threshold. Current accuracy on the verified labeled dataset is
-tracked honestly in [`docs/scoring-eval.md`](docs/scoring-eval.md):
+weight, and threshold. Accuracy is evaluated on a **held-out test split** of a verified labeled
+dataset ([`docs/dataset.md`](docs/dataset.md)) and reported honestly in
+[`docs/scoring-eval.md`](docs/scoring-eval.md) — currently **54.55%
+test-split** (down from a Week-4 83.33% that turned out to be a "thin
+mainnet" artifact once L2 data was added; see the report):
 
 ```bash
+python -m trust_api.jobs.split              # (re)build the committed train/test split
 python -m trust_api.jobs.evaluate_scoring   # regenerate the eval report
 ```
 

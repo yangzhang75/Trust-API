@@ -50,10 +50,11 @@ For who calls this and why, see [`api-use-cases.md`](api-use-cases.md).
 
 ### Stages
 
-1. **Ingestion** (`services/ingestion.py`) — fetches and normalizes raw
-   on-chain activity for the requested chains. Never stores raw
-   transaction data downstream. *Week 1: synthetic activity from a sha256
-   of the wallet.*
+1. **Ingestion** (`services/ingestion/`) — **real, multi-chain (Week 2 +
+   Week 4 L2):** fetches and normalizes on-chain transactions via the
+   Etherscan V2 API across **Ethereum and Arbitrum** (one key, `chainid`
+   registry), idempotently upserting to `wallet_transactions`. See
+   [`ingestion.md`](ingestion.md).
 2. **Features** (`services/features/`) — **real (Week 3):** computes 10
    per-wallet behavioral features from `wallet_transactions` via SQL
    aggregation and upserts them into `wallet_features`. Driven by a batch

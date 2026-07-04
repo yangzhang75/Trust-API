@@ -2,10 +2,17 @@
 
 The feature pipeline turns the raw `wallet_transactions` stored in Week 2
 into **10 per-wallet behavioral features** that the scoring engine
-(Weeks 4–5) will consume. Features are computed **only from data already in
-the database** (`wallet_transactions` + `wallets`) — no provider calls —
-using SQL aggregation (`COUNT`, `COUNT DISTINCT`, `MIN`/`MAX`, `FILTER`,
+consumes. Features are computed **only from data already in the database**
+(`wallet_transactions` + `wallets`) — no provider calls — using SQL
+aggregation (`COUNT`, `COUNT DISTINCT`, `MIN`/`MAX`, `FILTER`,
 `date_trunc`) so large wallets are never pulled into Python.
+
+> **Multi-chain (Week 4 reinforcement):** the aggregation query filters by
+> `wallet_id` only — **not** by chain — so features aggregate across **all
+> ingested chains** for a wallet (currently Ethereum + Arbitrum). This
+> matters: a wallet that is quiet on Ethereum mainnet but active on
+> Arbitrum now shows its real activity. Ingest every chain a wallet uses
+> before computing features (the eval's `prepare_wallet` does this).
 
 - **Code:** `src/trust_api/services/features/service.py`
 - **Storage:** `wallet_features` table (one row per wallet+chain, upserted
