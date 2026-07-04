@@ -57,12 +57,13 @@ For who calls this and why, see [`api-use-cases.md`](api-use-cases.md).
 2. **Features** (`services/features/`) — **real (Week 3):** computes 10
    per-wallet behavioral features from `wallet_transactions` via SQL
    aggregation and upserts them into `wallet_features`. Driven by a batch
-   job / the worker after ingestion. See [`features.md`](features.md). The
-   `/verify` stub scoring reads these when present (output still stubbed).
-3. **Scoring** (`services/scoring.py`) — maps features to a
-   `human_likelihood`, `trust_tier`, `confidence_score`, and `risk_flags`.
-   Persisted to `trust_scores`. *Week 1: transparent weighted average +
-   thresholds; no ML, no Sybil detection.*
+   job / the worker after ingestion. See [`features.md`](features.md).
+3. **Scoring** (`services/scoring/`) — **real (Week 4):** a transparent,
+   deterministic rule engine maps features to `human_likelihood`,
+   `trust_tier`, `confidence_score`, and `risk_flags`. All weights and
+   thresholds live in `scoring/config.py`. No ML. See [`scoring.md`](scoring.md)
+   and current results in [`scoring-eval.md`](scoring-eval.md). /verify now
+   returns real scores. *Persisting to `trust_scores` is a later week.*
 4. **Proof** (`services/proof.py`) — issues a time-bounded attestation
    (`issued_at`, `expires_at`, `valid_for_hours`, `signature`). Persisted
    to `proofs` (jsonb payload only). *Week 1: deterministic stub

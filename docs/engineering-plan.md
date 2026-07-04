@@ -33,10 +33,14 @@ in stubbed bodies without breaking the API contract.
 - Deferred to later weeks: gas profiles, funding-source lineage,
   feature versioning/backfill.
 
-## Week 4 — Scoring & Sybil Detection
-- Replace stub scoring with a calibrated heuristic/ML ensemble.
-- Dedicated Sybil-clustering stage; populate real `risk_flags`.
-- Score persistence (`trust_scores`) and explainability metadata.
+## Week 4 — Trust Scoring Engine ✅
+- Real, transparent, rule-based scoring (no ML): weighted positive
+  evidence minus risk-flag penalties, all tunable in scoring/config.py.
+- Wired into /verify (contract unchanged; features ingested/computed on
+  demand). Verified Sybil labels + evaluation harness → docs/scoring-eval.md
+  (83% accuracy, honest limitations). See docs/scoring.md.
+- Deferred: ML ensemble, funding-cluster Sybil detection, trust_scores
+  persistence, L2 ingestion for L2-native wallets.
 
 ## Week 5 — Proof Issuance & Verification
 - Real signing (Ed25519/secp256k1) with keys in KMS/HSM.

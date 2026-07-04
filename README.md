@@ -152,16 +152,30 @@ src/trust_api/
   worker.py          # background ingestion worker (APScheduler)
   api/               # routes.py, deps.py (auth + rate limit)
   schemas/           # verify.py (Pydantic v2 models + enums)
+  jobs/              # compute_features, evaluate_scoring (CLIs)
   services/
-    ingestion/       # provider + transform + load + service (real, Week 2)
-    features, scoring, proof   # still stubbed
+    ingestion/       # provider + transform + load (real, Week 2)
+    features/        # SQL-aggregated behavioral features (real, Week 3)
+    scoring/         # transparent rule engine + config (real, Week 4)
+    proof.py         # still stubbed (Week 6)
   db/                # session.py, models.py
   core/              # logging.py
-data/                # labeled_wallets.json (sample dataset)
+data/                # labeled_wallets.json (verified labeled dataset)
 scripts/             # seed_wallets.py, export_openapi.py
-tests/               # health, verify, ingestion, ETL, worker, seed tests
-migrations/          # Alembic env + migrations (0001 schema, 0002 txs)
-docs/                # architecture.md, ingestion.md, engineering-plan.md, openapi.json
+tests/               # health, verify, ingestion, ETL, features, scoring, eval
+migrations/          # Alembic (0001 schema, 0002 txs, 0003 feature cols)
+docs/                # architecture, ingestion, features, scoring, scoring-eval, ...
+```
+
+## Trust scoring (Week 4)
+
+`/verify` returns real scores from a transparent, deterministic rule
+engine (no ML) — see [`docs/scoring.md`](docs/scoring.md) for every rule,
+weight, and threshold. Current accuracy on the verified labeled dataset is
+tracked honestly in [`docs/scoring-eval.md`](docs/scoring-eval.md):
+
+```bash
+python -m trust_api.jobs.evaluate_scoring   # regenerate the eval report
 ```
 
 ## License
