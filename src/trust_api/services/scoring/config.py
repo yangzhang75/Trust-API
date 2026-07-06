@@ -18,6 +18,14 @@ BOT_BURST_MIN_TX_PER_HOUR = 20  # more than this in one hour -> bot_burst
 # signals are present at once (see engine._sybil_signals).
 SYBIL_MIN_SIGNALS = 2
 
+# --- Graph / cluster thresholds (Week 4 "B"; a-priori, NOT tuned to data) --
+SHARED_FUNDER_MIN = 0.33  # >= 1 of top-3 funders shared with another wallet
+COUNTERPARTY_OVERLAP_MIN = 0.30  # Jaccard overlap with another wallet
+FUNDING_CHAIN_MIN = 2  # relay depth: funded through >= 2 in-sample hops
+CLUSTER_SIZE_MIN = 3  # connected component of >= 3 wallets
+# sybil_cluster fires when at least this many graph signals are present.
+CLUSTER_MIN_SIGNALS = 1
+
 # --- Positive-evidence saturation points ----------------------------------
 # Each positive sub-score is feature / full-credit-point, capped at 1.0.
 AGE_FULL_DAYS = 365  # >= 1 year of history -> full age credit
@@ -39,6 +47,7 @@ RISK_PENALTIES: dict[RiskFlag, float] = {
     RiskFlag.bot_burst: 0.25,
     RiskFlag.dormant: 0.10,
     RiskFlag.sybil_suspected: 0.30,
+    RiskFlag.sybil_cluster: 0.35,
 }
 
 # --- Confidence buckets ---------------------------------------------------

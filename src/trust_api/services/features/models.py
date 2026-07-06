@@ -23,6 +23,11 @@ class WalletFeatures:
     dormancy_flag: bool
     recency_days: int
     computed_at: datetime | None = None
+    # Graph/cluster features (default 0 — only populated by the batch graph pass).
+    shared_funder_score: float = 0.0
+    counterparty_overlap_score: float = 0.0
+    funding_chain_depth: int = 0
+    cluster_size_estimate: int = 0
 
 
 # Neutral, all-zero features for a wallet with no data. Scored deterministically

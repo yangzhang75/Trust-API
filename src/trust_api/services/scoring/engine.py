@@ -38,6 +38,22 @@ def rule_dormant(f: Any) -> bool:
     return bool(f.dormancy_flag)
 
 
+def _graph_signals(f: Any) -> int:
+    """Count graph/cluster Sybil signals present at once."""
+    return sum(
+        [
+            (f.shared_funder_score or 0.0) >= config.SHARED_FUNDER_MIN,
+            (f.counterparty_overlap_score or 0.0) >= config.COUNTERPARTY_OVERLAP_MIN,
+            (f.funding_chain_depth or 0) >= config.FUNDING_CHAIN_MIN,
+            (f.cluster_size_estimate or 0) >= config.CLUSTER_SIZE_MIN,
+        ]
+    )
+
+
+def rule_graph_cluster(f: Any) -> bool:
+    return _graph_signals(f) >= config.CLUSTER_MIN_SIGNALS
+
+
 def _sybil_signals(f: Any) -> int:
     """Count independent Sybil-ish signals present at once."""
     return sum(
@@ -49,8 +65,12 @@ def _sybil_signals(f: Any) -> int:
     )
 
 
-def risk_flags(f: Any) -> list[RiskFlag]:
-    """Return every risk flag that fires for ``f`` (order is stable)."""
+def risk_flags(f: Any, *, use_graph: bool = True) -> list[RiskFlag]:
+    """Return every risk flag that fires for ``f`` (order is stable).
+
+    ``use_graph=False`` disables the graph/cluster rule — used for the
+    ablation study (graph vs no-graph).
+    """
     flags: list[RiskFlag] = []
     if rule_new_wallet(f):
         flags.append(RiskFlag.new_wallet)
@@ -64,6 +84,8 @@ def risk_flags(f: Any) -> list[RiskFlag]:
         flags.append(RiskFlag.dormant)
     if _sybil_signals(f) >= config.SYBIL_MIN_SIGNALS:
         flags.append(RiskFlag.sybil_suspected)
+    if use_graph and rule_graph_cluster(f):
+        flags.append(RiskFlag.sybil_cluster)
     return flags
 
 
@@ -81,9 +103,12 @@ def positive_score(f: Any) -> float:
     )
 
 
-def score(features: Any) -> ScoringResult:
-    """Score a wallet's features into a trust assessment (pure, deterministic)."""
-    flags = risk_flags(features)
+def score(features: Any, *, use_graph: bool = True) -> ScoringResult:
+    """Score a wallet's features into a trust assessment (pure, deterministic).
+
+    ``use_graph=False`` ablates the graph/cluster rule.
+    """
+    flags = risk_flags(features, use_graph=use_graph)
     base = positive_score(features)
     penalty = sum(config.RISK_PENALTIES[flag] for flag in flags)
     confidence = round(max(0.0, min(1.0, base - penalty)), 4)

@@ -81,6 +81,31 @@ def test_single_signal_is_not_sybil() -> None:
     assert RiskFlag.sybil_suspected not in flags
 
 
+# --- graph/cluster rule (B) ----------------------------------------------
+
+
+def test_graph_cluster_rule_fires_on_graph_evidence() -> None:
+    f = _features(cluster_size_estimate=5, shared_funder_score=0.67)
+    assert engine.rule_graph_cluster(f) is True
+    assert RiskFlag.sybil_cluster in engine.risk_flags(f)
+
+
+def test_graph_cluster_rule_absent_without_evidence() -> None:
+    assert engine.rule_graph_cluster(_features()) is False
+    assert RiskFlag.sybil_cluster not in engine.risk_flags(_features())
+
+
+def test_graph_ablation_switch_disables_cluster_flag() -> None:
+    f = _features(cluster_size_estimate=9)
+    assert RiskFlag.sybil_cluster in engine.risk_flags(f, use_graph=True)
+    assert RiskFlag.sybil_cluster not in engine.risk_flags(f, use_graph=False)
+    # ablation changes the score deterministically
+    assert (
+        engine.score(f, use_graph=True).confidence_score
+        <= engine.score(f, use_graph=False).confidence_score
+    )
+
+
 # --- bucketing ------------------------------------------------------------
 
 

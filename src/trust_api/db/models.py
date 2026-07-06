@@ -85,6 +85,12 @@ class WalletFeature(Base):
     dormancy_flag: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     recency_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
+    # --- Graph / cluster features (Week 4 reinforcement, "B") ---
+    shared_funder_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    counterparty_overlap_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    funding_chain_depth: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    cluster_size_estimate: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
     computed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

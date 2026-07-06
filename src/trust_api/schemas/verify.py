@@ -54,6 +54,7 @@ class RiskFlag(StrEnum):
     bot_burst = "bot_burst"
     dormant = "dormant"
     sybil_suspected = "sybil_suspected"
+    sybil_cluster = "sybil_cluster"
 
 
 class VerifyRequest(BaseModel):

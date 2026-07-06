@@ -74,7 +74,8 @@
           "low_counterparty_diversity",
           "bot_burst",
           "dormant",
-          "sybil_suspected"
+          "sybil_suspected",
+          "sybil_cluster"
         ],
         "title": "RiskFlag",
         "type": "string"
