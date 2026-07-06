@@ -1,5 +1,5 @@
 {
-  "description": "Labeled wallet dataset for Sybil-scoring evaluation. Positive class 'human' = doxxed identities or addresses that passed a project's public Sybil filter (NOT verified-human). Negative class 'sybil' = addresses flagged in public Sybil reports. Every entry cites a public label_source. Sybils are contiguous members of connected clusters (cluster_id) so intra-cluster edges survive; the train/test split is cluster-aware.",
+  "description": "Multi-project labeled Sybil dataset. Sybils are contiguous members of connected clusters from PUBLIC per-report sources across independent projects (Hop, Safe, Arbitrum); each has cluster_id + project + label_source. Humans are vetted-eligible/doxxed. Split is cluster-aware.",
   "sources": {
     "hop_sybil_report_3": "https://github.com/hop-protocol/hop-airdrop/issues/3",
     "hop_sybil_report_192": "https://github.com/hop-protocol/hop-airdrop/issues/192",
@@ -7,370 +7,986 @@
     "etherscan_public_identity": "https://etherscan.io/"
   },
   "known_biases": [
-    "Source concentration: all sybils are Hop airdrop clusters (6 distinct community reports used as 6 clusters). Still one project \u2014 a real limitation.",
-    "'human' is a proxy (project_vetted_eligible / doxxed), not verified humanness; humans are treated as singleton clusters.",
-    "Only 6 independent sybil clusters \u2014 a cluster-aware held-out test is coarse (few clusters per split)."
+    "Sybil clusters: 75 wallets / 15 clusters / 3 projects ({'hop': 35, 'safe': 35, 'arbitrum': 5}). Cluster edge-type differs by project (Hop=mutual transfers, Safe=shared funder/deployer, Arbitrum=mixed).",
+    "Arbitrum contributes only 1 usable cluster (thin); Hop and Safe dominate.",
+    "HUMAN class is still Hop-sourced (eligible list + 2 doxxed) \u2014 human-side project diversity is a limitation.",
+    "'human'=vetted-eligible is a proxy (passed a Sybil filter), not verified humanness."
   ],
   "wallets": [
     {
-      "address": "0x99c5591664b10d5655ef32102b1fe974d4c76923",
+      "address": "0x14f319e971ecf759e75f862ee95d139606819656",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-3",
+      "project": "hop",
+      "cluster_id": "hop-543",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #3."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/543",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #543)."
     },
     {
-      "address": "0x77a1e52c129f446a8e7c75fa5ac21a170e82a72f",
+      "address": "0x2542138c5513e0be91a50b5830be1b1b43919449",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-3",
+      "project": "hop",
+      "cluster_id": "hop-543",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #3."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/543",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #543)."
     },
     {
-      "address": "0xb64d7e6477c7e8b36e2e71707fa850fcb18319bc",
+      "address": "0x2e7b163dabbc104683ae041d771788f93a578e99",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-3",
+      "project": "hop",
+      "cluster_id": "hop-543",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #3."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/543",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #543)."
     },
     {
-      "address": "0xa0e9fd91a818ed300445e96665addca599d9fb0c",
+      "address": "0x5087f3a0412f794220f5d3370aa85868562c86d5",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-3",
+      "project": "hop",
+      "cluster_id": "hop-543",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #3."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/543",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #543)."
     },
     {
-      "address": "0xd45bea9aa43474555ec40bdae731e46a15224796",
+      "address": "0x5ea2c342e8db0abbbcc1f35c8d00cf11608368ff",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-3",
+      "project": "hop",
+      "cluster_id": "hop-543",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/3",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #3."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/543",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #543)."
     },
     {
-      "address": "0x640927ae3192194c50f11a2f24a36f942e93c874",
+      "address": "0xc371a857d4b1686d8bb3a84e79ecdf64d801d561",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-192",
+      "project": "hop",
+      "cluster_id": "hop-552",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/192",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #192."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/552",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #552)."
     },
     {
-      "address": "0x56729b3ece444f2e0a7a733d4c7f56d69cc0df0e",
+      "address": "0x1089162bcff05473d2156064b36a5fb57cc77f1f",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-192",
+      "project": "hop",
+      "cluster_id": "hop-552",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/192",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #192."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/552",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #552)."
     },
     {
-      "address": "0x05a7b63d048364ee3eb98c87a2bb00645e4e66a4",
+      "address": "0x323931b9cf5011392af266c8c46bf609a736e154",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-192",
+      "project": "hop",
+      "cluster_id": "hop-552",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/192",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #192."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/552",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #552)."
     },
     {
-      "address": "0x7623761614daeb407ed3ab970f6c2dd9de34492a",
+      "address": "0xd58ba05d9ee163f9acfe6a76b2ec9229d957f03e",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-192",
+      "project": "hop",
+      "cluster_id": "hop-552",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/192",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #192."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/552",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #552)."
     },
     {
-      "address": "0x4291c64ca6524465361912847de6503a4029c88a",
+      "address": "0x65bbe320a87a600801d6352fa25389d83c28e909",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-192",
+      "project": "hop",
+      "cluster_id": "hop-552",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/192",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #192."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/552",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #552)."
     },
     {
-      "address": "0x335c0552eb130f3dfbe6efcb4d2895aed1e9938b",
+      "address": "0xc4dd9a4c1a3c015d8232a7f58f9e136f042626b0",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-197",
+      "project": "hop",
+      "cluster_id": "hop-555",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/197",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #197."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/555",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #555)."
     },
     {
-      "address": "0x3616045e6d2b5f0f9412a3e69501c5b0369dc550",
+      "address": "0x2ad023a84cc56fb393f2c8fc05ae9a1a22e49c31",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-197",
+      "project": "hop",
+      "cluster_id": "hop-555",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/197",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #197."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/555",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #555)."
     },
     {
-      "address": "0xda5ef7bef14b95fc34ccd9bb5578df3651611fe8",
+      "address": "0x8c4eb6988a199dabcae0ce31052b3f3ac591787e",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-197",
+      "project": "hop",
+      "cluster_id": "hop-555",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/197",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #197."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/555",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #555)."
     },
     {
-      "address": "0x31bebc45430d266386332e057a44b281f4ff91d1",
+      "address": "0x38a274b830dfee1110ade9a45ba4d9a2f67a130f",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-197",
+      "project": "hop",
+      "cluster_id": "hop-555",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/197",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #197."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/555",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #555)."
     },
     {
-      "address": "0x26986bf004d86e8f8e73a61554aa97ce8cfc26f7",
+      "address": "0x3e0cf03f718520f30300266dcf4db50ba12d3331",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-197",
+      "project": "hop",
+      "cluster_id": "hop-555",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/197",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #197."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/555",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #555)."
     },
     {
-      "address": "0x0000000000000000000000000000000000000001",
+      "address": "0x0e1ca0c78c85457e04dd6f256b290f6c31b7629a",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-211",
+      "project": "hop",
+      "cluster_id": "hop-556",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/211",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #211."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/556",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #556)."
     },
     {
-      "address": "0x0000000000000000000000000000000000000002",
+      "address": "0x79fba65f42731e4a4db8472f0b2a5b48d0b4e7f9",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-211",
+      "project": "hop",
+      "cluster_id": "hop-556",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/211",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #211."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/556",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #556)."
     },
     {
-      "address": "0x0000000000000000000000000000000000000003",
+      "address": "0x0d7f4c479c8057eef1e1d3a73b142d416595e751",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-211",
+      "project": "hop",
+      "cluster_id": "hop-556",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/211",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #211."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/556",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #556)."
     },
     {
-      "address": "0x0000000000000000000000000000000000000004",
+      "address": "0xef205e1a13587ad52759cf675b8142120caffc4a",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-211",
+      "project": "hop",
+      "cluster_id": "hop-556",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/211",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #211."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/556",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #556)."
     },
     {
-      "address": "0xcb987b367e6fd61b08c33859abe253bb2886e3d8",
+      "address": "0x2cdf60d6e5943a40e940dcfb619897c77daa73f0",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-211",
+      "project": "hop",
+      "cluster_id": "hop-556",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/211",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #211."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/556",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #556)."
     },
     {
-      "address": "0x2d049f35f22bc0f47d0be2ac5d3fbad3a0e4df71",
+      "address": "0x552cda6990392d5345d2bcd6ed59ae4acd24392c",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-336",
+      "project": "hop",
+      "cluster_id": "hop-558",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/336",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #336."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/558",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #558)."
     },
     {
-      "address": "0x73639dcdc1db2dd4a542e1859e8b1f2168c5b065",
+      "address": "0x2c1a420cb6c631d1d38e738d8eafa8c9dc5d0b6d",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-336",
+      "project": "hop",
+      "cluster_id": "hop-558",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/336",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #336."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/558",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #558)."
     },
     {
-      "address": "0x30974df65f1a965ffbe45a1012f0379712480e39",
+      "address": "0x2dda83ea34157b05b24827a94e460d99cf9ccfb8",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-336",
+      "project": "hop",
+      "cluster_id": "hop-558",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/336",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #336."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/558",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #558)."
     },
     {
-      "address": "0x0bec07cb00ea1366aa4f21488c5a3998c050b003",
+      "address": "0x32c07bf7d22f12227c38165544f569970eebfa40",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-336",
+      "project": "hop",
+      "cluster_id": "hop-558",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/336",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #336."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/558",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #558)."
     },
     {
-      "address": "0x19fd6230c1d6970e473ded05962d7a0df9dcdaf0",
+      "address": "0x43c200c1ea4e63ab15d1fc0439eab749c35cb1f0",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-336",
+      "project": "hop",
+      "cluster_id": "hop-558",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/336",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #336."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/558",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #558)."
     },
     {
-      "address": "0x05f4f690f1450daae8892f76a8653004773e545c",
+      "address": "0x91ed916492576a23e1c77a483cec60a6fac8f38b",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-345",
+      "project": "hop",
+      "cluster_id": "hop-559",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/345",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #345."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/559",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #559)."
     },
     {
-      "address": "0x3f8ff0769028b06af7aa97aa51ace9fd613a1f9e",
+      "address": "0x1512be4ac080f24f0e200d403a396e7645e38deb",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-345",
+      "project": "hop",
+      "cluster_id": "hop-559",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/345",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #345."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/559",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #559)."
     },
     {
-      "address": "0x2a177f4eb03695f35bb0276d6ff85779a1a4ff88",
+      "address": "0xae02f6c3b8e944b0ba03e4129c5e8be92500db33",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-345",
+      "project": "hop",
+      "cluster_id": "hop-559",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/345",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #345."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/559",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #559)."
     },
     {
-      "address": "0xae15903e8384eb91e351d98dd1bad149b0ae85f0",
+      "address": "0x9e1de22c24f68cc7ba5add6a90ff10fe092b7c5e",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-345",
+      "project": "hop",
+      "cluster_id": "hop-559",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/345",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #345."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/559",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #559)."
     },
     {
-      "address": "0x232f7a2025a785efd462427163aaae34f3194a1b",
+      "address": "0xc90963a2e7e46b53cdc42bbd9ca049845b308958",
       "chains": [
         "ethereum",
         "arbitrum"
       ],
       "label": "sybil",
-      "cluster_id": "hop-345",
+      "project": "hop",
+      "cluster_id": "hop-559",
       "label_basis": "community_sybil_report",
-      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/345",
-      "note": "Contiguous member of the connected farming cluster in Hop Sybil report #345."
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/559",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #559)."
+    },
+    {
+      "address": "0xbd89351601938494b1d643ed2c15419d491c04ec",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "hop",
+      "cluster_id": "hop-564",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/564",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #564)."
+    },
+    {
+      "address": "0x734444aaf6370a176a82a9cd34a6ebdc9f3a1aa6",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "hop",
+      "cluster_id": "hop-564",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/564",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #564)."
+    },
+    {
+      "address": "0x2a71851d5bff1799b50a975d880f438677414260",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "hop",
+      "cluster_id": "hop-564",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/564",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #564)."
+    },
+    {
+      "address": "0x580731e5603d6faaba4a361e13d35f43082d2f3e",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "hop",
+      "cluster_id": "hop-564",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/564",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #564)."
+    },
+    {
+      "address": "0x517cd3cb3c89d66bb278ac437aaf1f8b2834665c",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "hop",
+      "cluster_id": "hop-564",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/hop-protocol/hop-airdrop/issues/564",
+      "note": "Contiguous member of a reported farming cluster (hop Sybil report #564)."
+    },
+    {
+      "address": "0x0065bf05b60a06f166cdf022e78dd75e9bdd54b4",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-424",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/424",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #424)."
+    },
+    {
+      "address": "0x06f3c2274c290f683e76608e3cdcf57c963f230b",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-424",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/424",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #424)."
+    },
+    {
+      "address": "0x0e0817fedaa7503499b2ab2dd7e77ffafb4a6393",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-424",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/424",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #424)."
+    },
+    {
+      "address": "0x16c0a1a63a6b50e4695a064a23f23289d55bc298",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-424",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/424",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #424)."
+    },
+    {
+      "address": "0x18adb3169d67dc7d43b9d02ca531e57bb5c5fb1b",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-424",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/424",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #424)."
+    },
+    {
+      "address": "0x67b4a009644ea18c3ef13ad7a40caf0413eede92",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-425",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/425",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #425)."
+    },
+    {
+      "address": "0x3f3df308ef35283544ca8eb3345b38dcceb40b2d",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-425",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/425",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #425)."
+    },
+    {
+      "address": "0x656afbfb370e763bb2354b4d2f4a1e3b6da5f109",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-425",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/425",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #425)."
+    },
+    {
+      "address": "0xc90db3aea38970621f2d81fdfe70b1b30103c4a9",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-425",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/425",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #425)."
+    },
+    {
+      "address": "0xfec1d52128816efbf64681606d21ee047f4f77b7",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-425",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/425",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #425)."
+    },
+    {
+      "address": "0x5b575f0c9c1aef1ac6fb5a998d21fbfb8a235f86",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-426",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/426",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #426)."
+    },
+    {
+      "address": "0x413d11063da67333896b4f6a9e01a560dc6ce96c",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-426",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/426",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #426)."
+    },
+    {
+      "address": "0x6157438b82edcb1c1ba7a4332a02e8d00b7ccc20",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-426",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/426",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #426)."
+    },
+    {
+      "address": "0xb65913cafc6c666868c53bf2484f4c696ab8ca0b",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-426",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/426",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #426)."
+    },
+    {
+      "address": "0xd6081dd70267f6e5a3d28ba4cdcc5e7804f703c3",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-426",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/426",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #426)."
+    },
+    {
+      "address": "0xee3cc395926ffe2f9c929120ab876aa4070162e1",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-427",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/427",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #427)."
+    },
+    {
+      "address": "0x45eda1e57d4a6dd069f689d52d65b98f1f5add45",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-427",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/427",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #427)."
+    },
+    {
+      "address": "0xd2cdc8df6cda80fda0942c84484b574873a6c2bb",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-427",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/427",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #427)."
+    },
+    {
+      "address": "0xfd9a4efa3e2cbc4c35fea9ee9743f1dc4c52240d",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-427",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/427",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #427)."
+    },
+    {
+      "address": "0x7f892114ed27f575b540e755e2dbce2adbf794a9",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-427",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/427",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #427)."
+    },
+    {
+      "address": "0xb11e6b7be31eb05a1e196cc5c16cd307759239b0",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-428",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/428",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #428)."
+    },
+    {
+      "address": "0xf04a24e0648b6c417f668b38438efb0dc64a4ea2",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-428",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/428",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #428)."
+    },
+    {
+      "address": "0x62aaa547b71501b525cd0755e10c683021108d59",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-428",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/428",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #428)."
+    },
+    {
+      "address": "0xdbf5ca65a55f08855191fbe0093900c3e8295218",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-428",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/428",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #428)."
+    },
+    {
+      "address": "0x15f5ffeb481d966b01526b72c703b5e4c2459286",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-428",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/428",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #428)."
+    },
+    {
+      "address": "0x2f8ff68756a2e210236fb00678e9043bd69d1133",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-429",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/429",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #429)."
+    },
+    {
+      "address": "0xecefde4b891733218692f6b3061f1b1a7fa1c0a2",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-429",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/429",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #429)."
+    },
+    {
+      "address": "0x4e439de585647cabd371fc7d618afaa736558573",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-429",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/429",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #429)."
+    },
+    {
+      "address": "0x83bb7b6149d4d18efc8d6951af55c04441484ae3",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-429",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/429",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #429)."
+    },
+    {
+      "address": "0x35903b3275b51d66597d39831681d2fc86d444f2",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-429",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/429",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #429)."
+    },
+    {
+      "address": "0x5a7db527db4b8da0bc21a6677efef5f0b379a1e6",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-430",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/430",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #430)."
+    },
+    {
+      "address": "0xcb07da8e5076f7abf7c3b87999491df18f76194f",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-430",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/430",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #430)."
+    },
+    {
+      "address": "0x376c2ad2af4947696a59e24cb6932fdede1dc750",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-430",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/430",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #430)."
+    },
+    {
+      "address": "0x254f42194a7d1aa1407f5bee7266df358176256d",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-430",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/430",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #430)."
+    },
+    {
+      "address": "0x8aabf01314990b6ac4b2be0bce2407c3713d403d",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "safe",
+      "cluster_id": "safe-430",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/safe-global/safe-user-allocation-reports/issues/430",
+      "note": "Contiguous member of a reported farming cluster (safe Sybil report #430)."
+    },
+    {
+      "address": "0x59d4087f3ff91da6a492b596cbde7140c34afb19",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "arbitrum",
+      "cluster_id": "arbitrum-3",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/ArbitrumFoundation/sybil-detection/issues/3",
+      "note": "Contiguous member of a reported farming cluster (arbitrum Sybil report #3)."
+    },
+    {
+      "address": "0x3e5a2b1020c454079f5a7702fa204752c584d6a0",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "arbitrum",
+      "cluster_id": "arbitrum-3",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/ArbitrumFoundation/sybil-detection/issues/3",
+      "note": "Contiguous member of a reported farming cluster (arbitrum Sybil report #3)."
+    },
+    {
+      "address": "0x3abec2bbec31c978a4a7e5b0cd2090cb759a0c01",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "arbitrum",
+      "cluster_id": "arbitrum-3",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/ArbitrumFoundation/sybil-detection/issues/3",
+      "note": "Contiguous member of a reported farming cluster (arbitrum Sybil report #3)."
+    },
+    {
+      "address": "0xcc577c130c019529ff1e721f9beea24a7dc1402d",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "arbitrum",
+      "cluster_id": "arbitrum-3",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/ArbitrumFoundation/sybil-detection/issues/3",
+      "note": "Contiguous member of a reported farming cluster (arbitrum Sybil report #3)."
+    },
+    {
+      "address": "0x9556ae9962c8034eb98f3f817eb5ecbb6d3e588f",
+      "chains": [
+        "ethereum",
+        "arbitrum"
+      ],
+      "label": "sybil",
+      "project": "arbitrum",
+      "cluster_id": "arbitrum-3",
+      "label_basis": "community_sybil_report",
+      "label_source": "https://github.com/ArbitrumFoundation/sybil-detection/issues/3",
+      "note": "Contiguous member of a reported farming cluster (arbitrum Sybil report #3)."
     },
     {
       "address": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
@@ -381,7 +997,8 @@
       "label_basis": "public_identity",
       "label_source": "https://etherscan.io/address/0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
       "note": "vitalik.eth \u2014 long-lived, diverse organic activity.",
-      "cluster_id": "solo-0xd8da6bf26964af9d7eed9e03e53415d37aa96045"
+      "cluster_id": "solo-0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+      "project": "hop"
     },
     {
       "address": "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B",
@@ -392,7 +1009,8 @@
       "label_basis": "public_identity",
       "label_source": "https://etherscan.io/address/0xab5801a7d398351b8be11c439e05c5b3259aec9b",
       "note": "Second well-known Vitalik Buterin address ('Vb').",
-      "cluster_id": "solo-0xab5801a7d398351b8be11c439e05c5b3259aec9b"
+      "cluster_id": "solo-0xab5801a7d398351b8be11c439e05c5b3259aec9b",
+      "project": "hop"
     },
     {
       "address": "0x0000a240a748224a0602b52814145b7a3ad55ef0",
@@ -404,7 +1022,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0x0000a240a748224a0602b52814145b7a3ad55ef0"
+      "cluster_id": "solo-0x0000a240a748224a0602b52814145b7a3ad55ef0",
+      "project": "hop"
     },
     {
       "address": "0x091c22b75c478726f6752fcca80d56e612c11d53",
@@ -416,7 +1035,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0x091c22b75c478726f6752fcca80d56e612c11d53"
+      "cluster_id": "solo-0x091c22b75c478726f6752fcca80d56e612c11d53",
+      "project": "hop"
     },
     {
       "address": "0x123a3c28eb9e701c173d3a73412489f3554f3005",
@@ -428,7 +1048,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0x123a3c28eb9e701c173d3a73412489f3554f3005"
+      "cluster_id": "solo-0x123a3c28eb9e701c173d3a73412489f3554f3005",
+      "project": "hop"
     },
     {
       "address": "0x1b56eb67f280add7cfe89727aca1134274443a39",
@@ -440,7 +1061,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0x1b56eb67f280add7cfe89727aca1134274443a39"
+      "cluster_id": "solo-0x1b56eb67f280add7cfe89727aca1134274443a39",
+      "project": "hop"
     },
     {
       "address": "0x23f32d04d3b73c382646009cbef741e0f6f1d31d",
@@ -452,7 +1074,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0x23f32d04d3b73c382646009cbef741e0f6f1d31d"
+      "cluster_id": "solo-0x23f32d04d3b73c382646009cbef741e0f6f1d31d",
+      "project": "hop"
     },
     {
       "address": "0x2d05f736cbfef5f1e84b097e09d48575e8995848",
@@ -464,7 +1087,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0x2d05f736cbfef5f1e84b097e09d48575e8995848"
+      "cluster_id": "solo-0x2d05f736cbfef5f1e84b097e09d48575e8995848",
+      "project": "hop"
     },
     {
       "address": "0x364a9ec91951995d6e54e7351121bd4d4cdacc7a",
@@ -476,7 +1100,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0x364a9ec91951995d6e54e7351121bd4d4cdacc7a"
+      "cluster_id": "solo-0x364a9ec91951995d6e54e7351121bd4d4cdacc7a",
+      "project": "hop"
     },
     {
       "address": "0x3fa38a6a32827c0a7e9a30ee2bbbe5b6c83b8772",
@@ -488,7 +1113,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0x3fa38a6a32827c0a7e9a30ee2bbbe5b6c83b8772"
+      "cluster_id": "solo-0x3fa38a6a32827c0a7e9a30ee2bbbe5b6c83b8772",
+      "project": "hop"
     },
     {
       "address": "0x4807c2c7b2650038633c844bd29dbde8c4fa6b3d",
@@ -500,7 +1126,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0x4807c2c7b2650038633c844bd29dbde8c4fa6b3d"
+      "cluster_id": "solo-0x4807c2c7b2650038633c844bd29dbde8c4fa6b3d",
+      "project": "hop"
     },
     {
       "address": "0x5106ded01d5197ee6d7c37e32f8d438899766fba",
@@ -512,7 +1139,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0x5106ded01d5197ee6d7c37e32f8d438899766fba"
+      "cluster_id": "solo-0x5106ded01d5197ee6d7c37e32f8d438899766fba",
+      "project": "hop"
     },
     {
       "address": "0x59fa204f4d7a117845f0215079c31125d1b8236f",
@@ -524,7 +1152,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0x59fa204f4d7a117845f0215079c31125d1b8236f"
+      "cluster_id": "solo-0x59fa204f4d7a117845f0215079c31125d1b8236f",
+      "project": "hop"
     },
     {
       "address": "0x630adf6a84a3789b6cd711f0a465e42b792664c7",
@@ -536,7 +1165,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0x630adf6a84a3789b6cd711f0a465e42b792664c7"
+      "cluster_id": "solo-0x630adf6a84a3789b6cd711f0a465e42b792664c7",
+      "project": "hop"
     },
     {
       "address": "0x6c53b1b42a2f868ee844d174090a4ab19c80acea",
@@ -548,7 +1178,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0x6c53b1b42a2f868ee844d174090a4ab19c80acea"
+      "cluster_id": "solo-0x6c53b1b42a2f868ee844d174090a4ab19c80acea",
+      "project": "hop"
     },
     {
       "address": "0x7605a685aaa76bc65ac6799627eca70d5966a10d",
@@ -560,7 +1191,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0x7605a685aaa76bc65ac6799627eca70d5966a10d"
+      "cluster_id": "solo-0x7605a685aaa76bc65ac6799627eca70d5966a10d",
+      "project": "hop"
     },
     {
       "address": "0x7f6913e7d97442823cc99cc1523ab463618b780e",
@@ -572,7 +1204,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0x7f6913e7d97442823cc99cc1523ab463618b780e"
+      "cluster_id": "solo-0x7f6913e7d97442823cc99cc1523ab463618b780e",
+      "project": "hop"
     },
     {
       "address": "0x88fc3f3b865a015c5b63572716a534325ba8be6d",
@@ -584,7 +1217,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0x88fc3f3b865a015c5b63572716a534325ba8be6d"
+      "cluster_id": "solo-0x88fc3f3b865a015c5b63572716a534325ba8be6d",
+      "project": "hop"
     },
     {
       "address": "0x924a17f54f5149975b5c80c2c201703ecc53ed4b",
@@ -596,7 +1230,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0x924a17f54f5149975b5c80c2c201703ecc53ed4b"
+      "cluster_id": "solo-0x924a17f54f5149975b5c80c2c201703ecc53ed4b",
+      "project": "hop"
     },
     {
       "address": "0x9b758a472c627504119e2dd6a7ed650647270e37",
@@ -608,7 +1243,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0x9b758a472c627504119e2dd6a7ed650647270e37"
+      "cluster_id": "solo-0x9b758a472c627504119e2dd6a7ed650647270e37",
+      "project": "hop"
     },
     {
       "address": "0xa49b8c71964aba7b31c08757e1c50722096ef7b1",
@@ -620,7 +1256,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0xa49b8c71964aba7b31c08757e1c50722096ef7b1"
+      "cluster_id": "solo-0xa49b8c71964aba7b31c08757e1c50722096ef7b1",
+      "project": "hop"
     },
     {
       "address": "0xad6859bfe880f46a4673fd8fa8e8808f77fcde11",
@@ -632,7 +1269,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0xad6859bfe880f46a4673fd8fa8e8808f77fcde11"
+      "cluster_id": "solo-0xad6859bfe880f46a4673fd8fa8e8808f77fcde11",
+      "project": "hop"
     },
     {
       "address": "0xb70ae0bbf799c0638a6f59cec37af20a2503ad91",
@@ -644,7 +1282,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0xb70ae0bbf799c0638a6f59cec37af20a2503ad91"
+      "cluster_id": "solo-0xb70ae0bbf799c0638a6f59cec37af20a2503ad91",
+      "project": "hop"
     },
     {
       "address": "0xbf932c5245b2e1f8bba78c27c9ecd0423fc5586e",
@@ -656,7 +1295,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0xbf932c5245b2e1f8bba78c27c9ecd0423fc5586e"
+      "cluster_id": "solo-0xbf932c5245b2e1f8bba78c27c9ecd0423fc5586e",
+      "project": "hop"
     },
     {
       "address": "0xc8f0c3cf27c6f62a2355456d0181aeea6923adb6",
@@ -668,7 +1308,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0xc8f0c3cf27c6f62a2355456d0181aeea6923adb6"
+      "cluster_id": "solo-0xc8f0c3cf27c6f62a2355456d0181aeea6923adb6",
+      "project": "hop"
     },
     {
       "address": "0xd25322e482338fb2186e719725c2836aff8a1c8a",
@@ -680,7 +1321,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0xd25322e482338fb2186e719725c2836aff8a1c8a"
+      "cluster_id": "solo-0xd25322e482338fb2186e719725c2836aff8a1c8a",
+      "project": "hop"
     },
     {
       "address": "0xdb2bccfb0428f6384f6571d4df48a639b593d15b",
@@ -692,7 +1334,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0xdb2bccfb0428f6384f6571d4df48a639b593d15b"
+      "cluster_id": "solo-0xdb2bccfb0428f6384f6571d4df48a639b593d15b",
+      "project": "hop"
     },
     {
       "address": "0xe46bfc3ac7743e2d693d60ebad719525634e23e4",
@@ -704,7 +1347,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0xe46bfc3ac7743e2d693d60ebad719525634e23e4"
+      "cluster_id": "solo-0xe46bfc3ac7743e2d693d60ebad719525634e23e4",
+      "project": "hop"
     },
     {
       "address": "0xede7a11067efba20b5161c8a9e97ecda67d77e76",
@@ -716,7 +1360,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0xede7a11067efba20b5161c8a9e97ecda67d77e76"
+      "cluster_id": "solo-0xede7a11067efba20b5161c8a9e97ecda67d77e76",
+      "project": "hop"
     },
     {
       "address": "0xf6fe9679254698bd5e32cd02f830b9725e703937",
@@ -728,7 +1373,8 @@
       "label_basis": "project_vetted_eligible",
       "label_source": "https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt",
       "note": "On Hop's post-review eligible list (passed the project's public Sybil filter); EOA sample.",
-      "cluster_id": "solo-0xf6fe9679254698bd5e32cd02f830b9725e703937"
+      "cluster_id": "solo-0xf6fe9679254698bd5e32cd02f830b9725e703937",
+      "project": "hop"
     }
   ]
 }
