@@ -28,6 +28,7 @@ def test_dataset_is_well_formed() -> None:
         assert "label_basis" in entry
         assert entry["label_source"].startswith("http")  # every label cites a source
         assert entry["chains"]  # non-empty chain list
+        assert entry["cluster_id"]  # cluster-aware split needs a cluster id
     labels = {e["label"] for e in wallets}
     assert labels == VALID_LABELS
 

@@ -31,6 +31,18 @@ def test_split_covers_all_wallets_once() -> None:
     assert len(train) + len(test) == len(addresses)
 
 
+def test_no_cluster_spans_both_splits() -> None:
+    # A Sybil cluster must land entirely on one side (no structure leakage).
+    train, test = split.split_sets()
+    by_cluster: dict[str, set[str]] = {}
+    for w in split.load_dataset():
+        by_cluster.setdefault(w["cluster_id"], set()).add(w["address"].lower())
+    for cluster_id, addrs in by_cluster.items():
+        in_train = addrs & train
+        in_test = addrs & test
+        assert not (in_train and in_test), f"cluster {cluster_id} spans both splits"
+
+
 def test_split_is_stratified_and_roughly_70_30() -> None:
     train, test = split.split_sets()
     labels = {w["address"].lower(): w["label"] for w in split.load_dataset()}

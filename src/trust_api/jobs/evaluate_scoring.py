@@ -192,37 +192,44 @@ def render_report(test_rows: list[EvalRow], train_rows: list[EvalRow], *, note: 
         "",
         "## Key finding (read this)",
         "",
-        "The headline accuracy DROPPED vs the Week 4 baseline (83.33% on 12 wallets), "
-        "and that drop is the most important result here. The Week 4 number was largely "
-        "a **data artifact**: the Sybil wallets farmed on Arbitrum but ingestion only "
-        "saw Ethereum mainnet, so they looked like empty wallets and scored low. Now "
-        "that features aggregate **Ethereum + Arbitrum**, those wallets show real "
-        "activity — and the simple threshold rules can no longer tell farming clusters "
-        "from legitimate users. Sybil recall collapses; the scorer is barely above "
-        "chance. This is an honest measurement of a genuinely hard problem, not a "
-        "regression to hide.",
+        "The methodology got stricter and the honest test number went DOWN — that is "
+        "the point. Two things changed since the Week 4 baseline (83.33% on 12 wallets, "
+        "no train/test separation): (1) features now aggregate **Ethereum + Arbitrum**, "
+        "so the Sybils no longer look like empty mainnet wallets (the old high score was "
+        "partly that artifact); (2) the Sybil set is now **contiguous members of "
+        "connected clusters** with a **cluster-aware** held-out split. On the real "
+        "multi-chain data the simple per-wallet rules cannot separate active farming "
+        "wallets from legitimate users (Sybil recall ~20-40%).",
         "",
-        "## On tuning (deliverable 6): deliberately NOT tuned",
+        "## What the train/test gap means here",
         "",
-        "Train-split Sybil recall is also very low, i.e. no threshold/weight change "
-        "separates the classes on the features we have — tuning would be fitting noise "
-        "and would leak nothing useful to the test split. The real fix is better "
-        "features (counterparty-graph / funding-source clustering, temporal farming "
-        "signatures), not moving thresholds. So thresholds were left as-is.",
+        "There is a large TRAIN-vs-TEST accuracy gap, but it is NOT tuning-overfit "
+        "(nothing was tuned). It comes from **too few independent clusters**: with only "
+        "~6 Sybil clusters, a cluster-aware split puts a couple of clusters in train and "
+        "the rest in test, and different clusters behave differently — so both numbers "
+        "are **high-variance**. The honest conclusion is that neither split gives a "
+        "trustworthy point estimate yet.",
+        "",
+        "## The binding constraint is DATA, not the model",
+        "",
+        "A graph signal genuinely exists: contiguous cluster members are ~40/40 "
+        "mutually linked on-chain, so counterparty-graph features should work. But it "
+        "cannot be evaluated honestly on 6 same-project clusters — the eval variance "
+        "would swamp any real improvement. The prerequisite is **more independent, "
+        "verified Sybil clusters from diverse projects** (Optimism, LayerZero, etc.). "
+        "Model work (graph features / ML) should follow that data work, not precede it.",
         "",
         "## Limitations & improvement plan",
         "",
-        "- **Held-out test.** Headline accuracy is on wallets tuning never saw; the tiny "
-        "train-vs-test gap confirms we are underfitting, not overfitting.",
-        "- **Source concentration.** All labels are from the Hop airdrop ecosystem "
-        "(docs/dataset.md) — this measures 'can simple rules approximate one project's "
-        "Sybil review', not general Sybil detection.",
-        "- **Weak positive class.** 28/30 'human' labels are 'passed Hop's Sybil filter' "
-        "(a proxy), not verified humans; and most wallets are long dormant (2022-era "
-        "airdrop), so `dormant` doesn't discriminate.",
-        "- **Improvement plan:** counterparty-graph / funding-source clustering for real "
-        "Sybil-ring detection; diversify sources across projects; add verified humans + "
-        "a borderline class; only then consider ML.",
+        "- **Deliberately NOT tuned** (deliverable 6): with high-variance few-cluster "
+        "splits, tuning would fit noise. Thresholds left as-is.",
+        "- **Source concentration & weak positive class.** All Sybils are Hop clusters; "
+        "28/30 'human' labels are 'passed Hop's Sybil filter' (a proxy). See "
+        "docs/dataset.md.",
+        "- **Plan:** (1) gather many independent verified clusters from multiple "
+        "projects; (2) then build counterparty-graph / funding-source cluster features; "
+        "(3) re-evaluate with cluster-aware splits across enough clusters to be stable; "
+        "(4) consider ML only after that.",
     ]
     return "\n".join(lines) + "\n"
 

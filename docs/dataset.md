@@ -8,12 +8,23 @@ self-labeled, synthetic, or guessed.
 
 | Class | Count | Source(s) |
 | --- | --- | --- |
-| `sybil` | 30 | Hop airdrop Sybil reports [#3](https://github.com/hop-protocol/hop-airdrop/issues/3) (15) and [#192](https://github.com/hop-protocol/hop-airdrop/issues/192) (15) — two distinct community-reported farming clusters |
+| `sybil` | 30 | **6 distinct Hop airdrop Sybil-report clusters** (issues #3, #192, #197, #211, #336, #345), **5 contiguous members each**. Contiguous = adjacent in the report's connected transfer chain, so intra-cluster on-chain edges survive (validated: a contiguous block is ~40/40 mutually linked, vs 0 for a scattered sample). |
 | `human` | 30 | 2 doxxed public identities (vitalik.eth, "Vb") + 28 addresses from Hop's public [eligible list](https://raw.githubusercontent.com/hop-protocol/hop-airdrop/master/src/data/eligibleAddresses.txt) that passed the project's Sybil filter |
 | **total** | **60** | |
 
-Each entry carries: `address`, `chains` it operates on, `label`,
-`label_basis`, `label_source` (URL), and a `note`.
+Each entry carries: `address`, `chains`, `label`, `cluster_id`,
+`label_basis`, `label_source` (URL), and a `note`. Sybil `cluster_id` is
+the source report (e.g. `hop-3`); each human is a singleton cluster
+(`solo-<address>`).
+
+## Why cluster_id + contiguous sampling
+
+Sybil ground truth is about **relationships between wallets** (a connected
+transfer chain), not per-wallet traits. An earlier scattered/sorted sample
+severed those edges (0 mutual links). Sampling **contiguous cluster
+members** keeps the edges, and the **train/test split is cluster-aware**
+(a whole cluster lands on one side) so cluster structure never leaks
+across the split. See [`scoring-eval.md`](scoring-eval.md).
 
 ## What the labels mean (and don't)
 

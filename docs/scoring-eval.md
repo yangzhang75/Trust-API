@@ -8,28 +8,28 @@ Decision rule: `human_likelihood == low` -> predicted **sybil**; `medium`/`high`
 
 ## Headline — TEST split (held out)
 
-**Accuracy:** 54.55% over 22 wallets.
+**Accuracy:** 30.43% over 23 wallets.
 
 | class | precision | recall |
 | --- | --- | --- |
-| human | 50.00% | 100.00% |
-| sybil | 100.00% | 16.67% |
+| human | 15.79% | 100.00% |
+| sybil | 100.00% | 20.00% |
 
 ### Confusion matrix — TEST (rows = true, cols = predicted)
 
 | true \ pred | human | sybil |
 | --- | --- | --- |
-| human | 10 | 0 |
-| sybil | 10 | 2 |
+| human | 3 | 0 |
+| sybil | 16 | 4 |
 
 ## TRAIN split (for overfitting comparison)
 
-**Accuracy:** 55.26% over 38 wallets.
+**Accuracy:** 81.08% over 37 wallets.
 
 | class | precision | recall |
 | --- | --- | --- |
-| human | 54.29% | 95.00% |
-| sybil | 66.67% | 11.11% |
+| human | 81.25% | 96.30% |
+| sybil | 80.00% | 40.00% |
 
 A large train-minus-test accuracy gap would signal overfitting. Week 4 baseline was 83.33% on 12 wallets (no train/test separation); the test number below is a genuine held-out result on a harder, larger set and is not tuned to beat the old one.
 
@@ -37,40 +37,44 @@ A large train-minus-test accuracy gap would signal overfitting. Week 4 baseline 
 
 | address | label | predicted | likelihood | tier | confidence | risk flags |
 | --- | --- | --- | --- | --- | --- | --- |
-| `0x0538799a…` | sybil | human ❌ | medium | silver | 0.5361 | dormant |
-| `0x06a587a3…` | sybil | human ❌ | medium | silver | 0.4935 | dormant |
-| `0x07dd09b3…` | sybil | human ❌ | medium | silver | 0.476 | dormant |
-| `0x0344a630…` | sybil | sybil ✅ | low | bronze | 0.2695 | low_activity, dormant |
-| `0x0764b980…` | sybil | human ❌ | medium | silver | 0.476 | dormant |
-| `0x07b3e123…` | sybil | human ❌ | high | gold | 1.0 | — |
-| `0x07e0cb43…` | sybil | human ❌ | high | gold | 0.9 | dormant |
-| `0x09a2ff8b…` | sybil | human ❌ | high | gold | 0.8534 | dormant |
-| `0x0a8b3a26…` | sybil | human ❌ | medium | silver | 0.6215 | dormant |
-| `0x0bc4d7c6…` | sybil | sybil ✅ | low | bronze | 0.0 | new_wallet, low_activity, low_counterparty_diversity, sybil_suspected |
-| `0x0be9e2ce…` | sybil | human ❌ | high | gold | 0.895 | dormant |
-| `0x0c001fe3…` | sybil | human ❌ | medium | silver | 0.4833 | dormant |
-| `0x0000a240…` | human | human ✅ | medium | silver | 0.595 | bot_burst |
-| `0x091c22b7…` | human | human ✅ | medium | silver | 0.4543 | bot_burst |
-| `0x1b56eb67…` | human | human ✅ | high | gold | 0.9 | dormant |
-| `0x3fa38a6a…` | human | human ✅ | high | gold | 0.9 | dormant |
-| `0x6c53b1b4…` | human | human ✅ | high | gold | 0.8375 | dormant |
-| `0x924a17f5…` | human | human ✅ | high | gold | 0.9 | dormant |
-| `0xad6859bf…` | human | human ✅ | high | gold | 0.885 | dormant |
-| `0xbf932c52…` | human | human ✅ | high | gold | 0.8381 | dormant |
-| `0xd25322e4…` | human | human ✅ | medium | silver | 0.6621 | dormant |
-| `0xede7a110…` | human | human ✅ | high | gold | 0.7724 | dormant |
+| `0x99c55916…` | sybil | human ❌ | medium | silver | 0.5225 | dormant |
+| `0x77a1e52c…` | sybil | human ❌ | medium | silver | 0.508 | dormant |
+| `0xb64d7e64…` | sybil | human ❌ | medium | silver | 0.4965 | dormant |
+| `0xa0e9fd91…` | sybil | human ❌ | medium | silver | 0.4935 | dormant |
+| `0xd45bea9a…` | sybil | human ❌ | medium | silver | 0.4768 | dormant |
+| `0x00000000…` | sybil | human ❌ | medium | silver | 0.5734 | bot_burst |
+| `0x00000000…` | sybil | human ❌ | medium | silver | 0.625 | bot_burst |
+| `0x00000000…` | sybil | human ❌ | high | gold | 1.0 | — |
+| `0x00000000…` | sybil | human ❌ | medium | silver | 0.7338 | — |
+| `0xcb987b36…` | sybil | human ❌ | medium | silver | 0.501 | dormant |
+| `0x2d049f35…` | sybil | sybil ✅ | low | bronze | 0.2585 | low_activity, dormant |
+| `0x73639dcd…` | sybil | human ❌ | medium | silver | 0.473 | dormant |
+| `0x30974df6…` | sybil | sybil ✅ | low | bronze | 0.264 | low_activity, dormant |
+| `0x0bec07cb…` | sybil | sybil ✅ | low | bronze | 0.264 | low_activity, dormant |
+| `0x19fd6230…` | sybil | sybil ✅ | low | bronze | 0.264 | low_activity, dormant |
+| `0x05f4f690…` | sybil | human ❌ | high | gold | 0.8825 | dormant |
+| `0x3f8ff076…` | sybil | human ❌ | medium | silver | 0.5005 | dormant |
+| `0x2a177f4e…` | sybil | human ❌ | medium | silver | 0.5005 | dormant |
+| `0xae15903e…` | sybil | human ❌ | medium | silver | 0.5175 | dormant |
+| `0x232f7a20…` | sybil | human ❌ | medium | silver | 0.5005 | dormant |
+| `0x7f6913e7…` | human | human ✅ | medium | silver | 0.4985 | dormant |
+| `0x88fc3f3b…` | human | human ✅ | high | gold | 0.834 | dormant |
+| `0x9b758a47…` | human | human ✅ | medium | silver | 0.55 | dormant |
 
 ## Key finding (read this)
 
-The headline accuracy DROPPED vs the Week 4 baseline (83.33% on 12 wallets), and that drop is the most important result here. The Week 4 number was largely a **data artifact**: the Sybil wallets farmed on Arbitrum but ingestion only saw Ethereum mainnet, so they looked like empty wallets and scored low. Now that features aggregate **Ethereum + Arbitrum**, those wallets show real activity — and the simple threshold rules can no longer tell farming clusters from legitimate users. Sybil recall collapses; the scorer is barely above chance. This is an honest measurement of a genuinely hard problem, not a regression to hide.
+The methodology got stricter and the honest test number went DOWN — that is the point. Two things changed since the Week 4 baseline (83.33% on 12 wallets, no train/test separation): (1) features now aggregate **Ethereum + Arbitrum**, so the Sybils no longer look like empty mainnet wallets (the old high score was partly that artifact); (2) the Sybil set is now **contiguous members of connected clusters** with a **cluster-aware** held-out split. On the real multi-chain data the simple per-wallet rules cannot separate active farming wallets from legitimate users (Sybil recall ~20-40%).
 
-## On tuning (deliverable 6): deliberately NOT tuned
+## What the train/test gap means here
 
-Train-split Sybil recall is also very low, i.e. no threshold/weight change separates the classes on the features we have — tuning would be fitting noise and would leak nothing useful to the test split. The real fix is better features (counterparty-graph / funding-source clustering, temporal farming signatures), not moving thresholds. So thresholds were left as-is.
+There is a large TRAIN-vs-TEST accuracy gap, but it is NOT tuning-overfit (nothing was tuned). It comes from **too few independent clusters**: with only ~6 Sybil clusters, a cluster-aware split puts a couple of clusters in train and the rest in test, and different clusters behave differently — so both numbers are **high-variance**. The honest conclusion is that neither split gives a trustworthy point estimate yet.
+
+## The binding constraint is DATA, not the model
+
+A graph signal genuinely exists: contiguous cluster members are ~40/40 mutually linked on-chain, so counterparty-graph features should work. But it cannot be evaluated honestly on 6 same-project clusters — the eval variance would swamp any real improvement. The prerequisite is **more independent, verified Sybil clusters from diverse projects** (Optimism, LayerZero, etc.). Model work (graph features / ML) should follow that data work, not precede it.
 
 ## Limitations & improvement plan
 
-- **Held-out test.** Headline accuracy is on wallets tuning never saw; the tiny train-vs-test gap confirms we are underfitting, not overfitting.
-- **Source concentration.** All labels are from the Hop airdrop ecosystem (docs/dataset.md) — this measures 'can simple rules approximate one project's Sybil review', not general Sybil detection.
-- **Weak positive class.** 28/30 'human' labels are 'passed Hop's Sybil filter' (a proxy), not verified humans; and most wallets are long dormant (2022-era airdrop), so `dormant` doesn't discriminate.
-- **Improvement plan:** counterparty-graph / funding-source clustering for real Sybil-ring detection; diversify sources across projects; add verified humans + a borderline class; only then consider ML.
+- **Deliberately NOT tuned** (deliverable 6): with high-variance few-cluster splits, tuning would fit noise. Thresholds left as-is.
+- **Source concentration & weak positive class.** All Sybils are Hop clusters; 28/30 'human' labels are 'passed Hop's Sybil filter' (a proxy). See docs/dataset.md.
+- **Plan:** (1) gather many independent verified clusters from multiple projects; (2) then build counterparty-graph / funding-source cluster features; (3) re-evaluate with cluster-aware splits across enough clusters to be stable; (4) consider ML only after that.
