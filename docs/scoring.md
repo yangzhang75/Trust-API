@@ -34,10 +34,20 @@ The output is: `human_likelihood` (high/medium/low), `trust_tier`
    | `bot_burst` | > 20 txs in a single hour | 0.25 |
    | `dormant` | inactive > 90 days | 0.10 |
    | `sybil_suspected` | ≥ 2 Sybil signals at once (see below) | 0.30 |
+   | `sybil_cluster` | ≥ 1 graph/cluster signal (see below) | 0.35 |
 
    **Sybil signal set:** `low_counterparty_diversity`, `bot_burst`, and
    (`new_wallet` **and** `low_activity`). If at least 2 of these are true,
    `sybil_suspected` fires.
+
+   **Graph/cluster signal set** (Week 4 "B", from the graph features —
+   see [`features.md`](features.md)): `shared_funder_score ≥ 0.33`,
+   `counterparty_overlap_score ≥ 0.30`, `funding_chain_depth ≥ 2`,
+   `cluster_size_estimate ≥ 3`. If ≥ 1 is true, `sybil_cluster` fires.
+   These thresholds are a-priori (not tuned to the data); their held-out
+   value is measured by ablation in [`scoring-eval.md`](scoring-eval.md).
+   For a lone wallet with no ingested neighborhood the graph features are 0,
+   so `sybil_cluster` never fires on an isolated `/verify` lookup.
 
 3. **Confidence** = `positive_evidence − sum(penalties)`, clamped to
    `[0, 1]` and rounded to 4 decimals.

@@ -69,13 +69,24 @@ def test_precision_recall() -> None:
 def test_render_report_contains_key_sections() -> None:
     test_rows = [_row("human", "human"), _row("sybil", "sybil")]
     train_rows = [_row("human", "human")]
-    md = ev.render_report(test_rows, train_rows, note="test run")
+    md = ev.render_report(test_rows, train_rows, note="test run", test_rows_no_graph=test_rows)
     assert "# Scoring Evaluation" in md
     assert "TEST split" in md
     assert "TRAIN split" in md
     assert "Confusion matrix" in md
     assert "Per-wallet predictions" in md
-    assert "limitations" in md.lower()
+    assert "Ablation" in md
+    assert "improvement plan" in md.lower()
+
+
+def test_render_report_without_ablation() -> None:
+    md = ev.render_report([_row("human", "human")], [_row("sybil", "sybil")], note="x")
+    assert "Ablation" not in md  # ablation section omitted when not provided
+
+
+def test_cluster_summary_reports_counts() -> None:
+    s = ev.cluster_summary()
+    assert "clusters" in s and "projects" in s
 
 
 def test_split_rows_partitions_by_committed_split() -> None:

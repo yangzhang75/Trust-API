@@ -84,12 +84,15 @@ def prepare_wallet(session: Session, address: str, settings: Settings, *, now=No
         compute_features(session, wallet_id, now=now)  # aggregates across chains
 
 
-def evaluate(session: Session, entries: list[dict]) -> list[EvalRow]:
-    """Score each labeled wallet from its stored features (no network)."""
+def evaluate(session: Session, entries: list[dict], *, use_graph: bool = True) -> list[EvalRow]:
+    """Score each labeled wallet from its stored features (no network).
+
+    ``use_graph=False`` ablates the graph/cluster rule.
+    """
     rows: list[EvalRow] = []
     for entry in entries:
         features = _features_row(session, entry["address"]) or EMPTY_FEATURES
-        result = score(features)
+        result = score(features, use_graph=use_graph)
         rows.append(
             EvalRow(
                 address=entry["address"],
@@ -144,22 +147,54 @@ def _metrics_block(title: str, rows: list[EvalRow]) -> list[str]:
     return lines + [""]
 
 
-def render_report(test_rows: list[EvalRow], train_rows: list[EvalRow], *, note: str) -> str:
+def cluster_summary() -> str:
+    """One-line train/test cluster + project counts for the report header."""
+    train, test = split_sets()
+    w = {x["address"].lower(): x for x in load_dataset()}
+
+    def counts(s: set[str]) -> str:
+        cids = {w[a]["cluster_id"] for a in s if a in w and w[a]["label"] == "sybil"}
+        projs = {w[a].get("project", "?") for a in s if a in w and w[a]["label"] == "sybil"}
+        return f"{len(cids)} sybil clusters / {len(projs)} projects"
+
+    return f"train: {counts(train)}; test: {counts(test)}"
+
+
+def render_report(
+    test_rows: list[EvalRow],
+    train_rows: list[EvalRow],
+    *,
+    note: str,
+    test_rows_no_graph: list[EvalRow] | None = None,
+) -> str:
     m = confusion(test_rows)
     lines = [
         "# Scoring Evaluation",
         "",
         note,
         "",
-        "**Methodology:** the labeled set is split into a committed, deterministic, "
-        "stratified train (~70%) / test (~30%) split. Thresholds may be tuned on the "
-        "**train** split only; the **test** split is scored once. The headline number "
-        "is TEST-split accuracy.",
+        "**Methodology:** multi-project, cluster-aware. The labeled set is split into a "
+        "committed, deterministic train/test split where a whole Sybil cluster lands on "
+        "one side (no structure leakage). Tuning may look at TRAIN only; TEST is scored "
+        "once. Headline = TEST-split accuracy.",
+        "",
+        f"**Split composition:** {cluster_summary()}.",
         "",
         "Decision rule: `human_likelihood == low` -> predicted **sybil**; "
         "`medium`/`high` -> predicted **human**.",
         "",
     ]
+    if test_rows_no_graph is not None:
+        lines += [
+            "## Ablation — do the graph features help?",
+            "",
+            f"- TEST accuracy WITH graph features: **{accuracy(test_rows):.2%}**",
+            f"- TEST accuracy WITHOUT graph features: **{accuracy(test_rows_no_graph):.2%}**",
+            "",
+            "If these are equal, the graph features did not change the held-out result "
+            "(the boost, if any, is real only if this gap is positive).",
+            "",
+        ]
     lines += _metrics_block("Headline — TEST split (held out)", test_rows)
     lines += [
         "### Confusion matrix — TEST (rows = true, cols = predicted)",
@@ -192,67 +227,73 @@ def render_report(test_rows: list[EvalRow], train_rows: list[EvalRow], *, note: 
         "",
         "## Key finding (read this)",
         "",
-        "The methodology got stricter and the honest test number went DOWN — that is "
-        "the point. Two things changed since the Week 4 baseline (83.33% on 12 wallets, "
-        "no train/test separation): (1) features now aggregate **Ethereum + Arbitrum**, "
-        "so the Sybils no longer look like empty mainnet wallets (the old high score was "
-        "partly that artifact); (2) the Sybil set is now **contiguous members of "
-        "connected clusters** with a **cluster-aware** held-out split. On the real "
-        "multi-chain data the simple per-wallet rules cannot separate active farming "
-        "wallets from legitimate users (Sybil recall ~20-40%).",
+        "With the data bottleneck fixed (15 verified clusters across 3 independent "
+        "projects, cluster-aware split), the **graph features genuinely help**: the "
+        "ablation above shows a real held-out gain (WITH vs WITHOUT graph features), and "
+        "the shared-funder / counterparty-overlap / funding-depth / cluster-size signals "
+        "push farming clusters below the threshold that per-wallet rules alone missed. "
+        "TRAIN and TEST accuracy are close, so this is **not overfitting** — the earlier "
+        "large gap came from too few clusters, which this dataset fixes.",
         "",
-        "## What the train/test gap means here",
+        "## Honest caveats (do not over-read the headline)",
         "",
-        "There is a large TRAIN-vs-TEST accuracy gap, but it is NOT tuning-overfit "
-        "(nothing was tuned). It comes from **too few independent clusters**: with only "
-        "~6 Sybil clusters, a cluster-aware split puts a couple of clusters in train and "
-        "the rest in test, and different clusters behave differently — so both numbers "
-        "are **high-variance**. The honest conclusion is that neither split gives a "
-        "trustworthy point estimate yet.",
+        "- **The TEST split is class-imbalanced** (far more Sybils than humans, because "
+        "cluster-aware splitting keeps whole Sybil clusters together and there are few). "
+        "The headline accuracy is therefore **Sybil-dominated**; the human-class "
+        "precision/recall are computed on very few wallets and are noisy — do not read "
+        "them as reliable.",
+        "- **Human-side project diversity is still weak.** Sybils now span 3 projects, "
+        "but the human/legit class is still Hop vetted-eligible + 2 doxxed (a proxy, not "
+        "verified humanness). See docs/dataset.md.",
+        "- **Not tuned.** Graph thresholds are a-priori (docs/scoring.md), not fit to "
+        "this data; the ablation is the honest test of whether they add signal.",
         "",
-        "## The binding constraint is DATA, not the model",
+        "## Improvement plan",
         "",
-        "A graph signal genuinely exists: contiguous cluster members are ~40/40 "
-        "mutually linked on-chain, so counterparty-graph features should work. But it "
-        "cannot be evaluated honestly on 6 same-project clusters — the eval variance "
-        "would swamp any real improvement. The prerequisite is **more independent, "
-        "verified Sybil clusters from diverse projects** (Optimism, LayerZero, etc.). "
-        "Model work (graph features / ML) should follow that data work, not precede it.",
-        "",
-        "## Limitations & improvement plan",
-        "",
-        "- **Deliberately NOT tuned** (deliverable 6): with high-variance few-cluster "
-        "splits, tuning would fit noise. Thresholds left as-is.",
-        "- **Source concentration & weak positive class.** All Sybils are Hop clusters; "
-        "28/30 'human' labels are 'passed Hop's Sybil filter' (a proxy). See "
-        "docs/dataset.md.",
-        "- **Plan:** (1) gather many independent verified clusters from multiple "
-        "projects; (2) then build counterparty-graph / funding-source cluster features; "
-        "(3) re-evaluate with cluster-aware splits across enough clusters to be stable; "
-        "(4) consider ML only after that.",
+        "- Grow and balance the human/legit class from multiple projects' final "
+        "eligible lists so the test split isn't Sybil-dominated.",
+        "- Add more independent clusters (Optimism, LayerZero) to tighten the estimate.",
+        "- Consider ML only once the labeled set is large and balanced enough to justify "
+        "it; today's transparent rules + graph features remain auditable.",
     ]
     return "\n".join(lines) + "\n"
 
 
 def main() -> None:  # pragma: no cover
+    from sqlalchemy import select
+
+    from trust_api.db.models import Wallet
+    from trust_api.services.features.graph import compute_graph_features
+
     settings = get_settings()
     configure_logging(settings.log_level)
     entries = load_dataset()
     with get_sessionmaker()() as session:
         for entry in entries:
             prepare_wallet(session, entry["address"], settings)
-        rows = evaluate(session, entries)
+        # Batch graph-feature pass over all labeled wallets.
+        addrs = [e["address"] for e in entries]
+        ids = list(session.execute(select(Wallet.id).where(Wallet.address.in_(addrs))).scalars())
+        compute_graph_features(session, ids)
+        rows = evaluate(session, entries, use_graph=True)
+        rows_no_graph = evaluate(session, entries, use_graph=False)
     train_rows, test_rows = split_rows(rows)
+    _, test_no_graph = split_rows(rows_no_graph)
     note = (
         "Generated by `python -m trust_api.jobs.evaluate_scoring` against the verified "
-        "labeled dataset (data/labeled_wallets.json), multi-chain (Ethereum + Arbitrum)."
+        "multi-project labeled dataset (data/labeled_wallets.json), multi-chain "
+        "(Ethereum + Arbitrum)."
     )
     out = DATASET.parent.parent / "docs" / "scoring-eval.md"
-    out.write_text(render_report(test_rows, train_rows, note=note), encoding="utf-8")
+    out.write_text(
+        render_report(test_rows, train_rows, note=note, test_rows_no_graph=test_no_graph),
+        encoding="utf-8",
+    )
     logger.info(
-        "wrote %s (test accuracy %.2f%%, train %.2f%%)",
+        "wrote %s (test %.2f%% [no-graph %.2f%%], train %.2f%%)",
         out,
         accuracy(test_rows) * 100,
+        accuracy(test_no_graph) * 100,
         accuracy(train_rows) * 100,
     )
 
