@@ -9,6 +9,11 @@ from __future__ import annotations
 
 from trust_api.schemas.verify import HumanLikelihood, RiskFlag, TrustTier
 
+# Bumped whenever scoring logic/thresholds change, so history rows from
+# different scorer versions stay distinguishable (Week 5). Rule-based
+# scorer + graph features baseline: 0.4.0-graph.
+SCORER_VERSION = "0.4.0-graph"
+
 # --- Risk-rule thresholds -------------------------------------------------
 NEW_WALLET_MAX_AGE_DAYS = 30  # younger than this -> new_wallet
 LOW_ACTIVITY_MAX_TX = 5  # fewer than this many txs -> low_activity

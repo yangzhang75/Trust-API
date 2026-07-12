@@ -18,6 +18,7 @@ EXPECTED_TABLES = {
     "wallet_features",
     "wallet_transactions",
     "trust_scores",
+    "trust_score_history",
     "proofs",
     "api_keys",
     "usage_events",

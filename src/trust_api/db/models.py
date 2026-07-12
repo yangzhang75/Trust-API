@@ -147,6 +147,33 @@ class TrustScore(Base):
     wallet: Mapped[Wallet] = relationship(back_populates="scores")
 
 
+class TrustScoreHistory(Base):
+    """Append-only scoring history (Week 5).
+
+    One row per (wallet, scorer_version): re-running the same scorer version
+    updates that row in place; a new scorer_version appends a new row, so
+    scores from different scorer versions stay distinguishable.
+    """
+
+    __tablename__ = "trust_score_history"
+    __table_args__ = (
+        UniqueConstraint("wallet_id", "scorer_version", name="uq_score_history_wallet_version"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    wallet_id: Mapped[int] = mapped_column(
+        ForeignKey("wallets.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    human_likelihood: Mapped[str] = mapped_column(String(16), nullable=False)
+    trust_tier: Mapped[str] = mapped_column(String(16), nullable=False)
+    confidence_score: Mapped[float] = mapped_column(Numeric(5, 4), nullable=False)
+    risk_flags: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    scorer_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    scored_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
 class Proof(Base):
     """A time-bounded attestation issued for a wallet (jsonb payload only)."""
 
