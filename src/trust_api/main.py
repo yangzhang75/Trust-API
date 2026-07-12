@@ -7,10 +7,11 @@ is cheap to construct in tests.
 
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 
 from trust_api.config import Settings, get_settings
 from trust_api.core.logging import configure_logging, get_logger
+from trust_api.core.metrics import render_prometheus
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -37,6 +38,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def health() -> dict[str, str]:
         """Return service liveness status."""
         return {"status": "ok"}
+
+    @app.get("/metrics", tags=["meta"], summary="Scoring metrics (Prometheus text)")
+    def metrics() -> Response:
+        """Expose in-process scoring counters in Prometheus text format."""
+        return Response(content=render_prometheus(), media_type="text/plain; version=0.0.4")
 
     # The /verify router is wired in a later commit.
     from trust_api.api.routes import router as api_router

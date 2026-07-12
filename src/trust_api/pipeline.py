@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from trust_api.config import Settings
 from trust_api.core.logging import get_logger, log_event
+from trust_api.core.metrics import METRICS
 from trust_api.db.models import TrustScoreHistory, Wallet, WalletFeature
 from trust_api.schemas.verify import Chain
 from trust_api.services.features import compute_features
@@ -134,7 +135,7 @@ def score_wallet(
         result = run_stage("score", lambda: score(_feature_row(session, wallet_id)))
         run_stage("persist", lambda: _persist(session, wallet_id, result, now))
     except _StageFailed as failed:
-        return WalletOutcome(
+        outcome = WalletOutcome(
             address=address,
             status="error",
             stage=failed.stage,
@@ -142,15 +143,18 @@ def score_wallet(
             duration_ms=_ms(started),
             result=None,
         )
+    else:
+        outcome = WalletOutcome(
+            address=address,
+            status="ok",
+            stage=None,
+            error_type=None,
+            duration_ms=_ms(started),
+            result=result,
+        )
 
-    return WalletOutcome(
-        address=address,
-        status="ok",
-        stage=None,
-        error_type=None,
-        duration_ms=_ms(started),
-        result=result,
-    )
+    METRICS.record(ok=outcome.status == "ok", duration_seconds=outcome.duration_ms / 1000)
+    return outcome
 
 
 def score_wallets(

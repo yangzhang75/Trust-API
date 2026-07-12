@@ -207,6 +207,26 @@
         ]
       }
     },
+    "/metrics": {
+      "get": {
+        "description": "Expose in-process scoring counters in Prometheus text format.",
+        "operationId": "metrics_metrics_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Scoring metrics (Prometheus text)",
+        "tags": [
+          "meta"
+        ]
+      }
+    },
     "/verify": {
       "post": {
         "description": "Resolve features, score them with the rule engine, and return the result.",
