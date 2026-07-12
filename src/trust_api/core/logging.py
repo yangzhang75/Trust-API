@@ -1,14 +1,15 @@
 """Logging configuration for the Trust API.
 
-Week 1 keeps this intentionally simple (stdlib logging with a single
-stream handler). Structured/JSON logging and request-id correlation are
-deferred.
+Stdlib logging with a single stream handler, plus a small structured
+(JSON) event helper for the scoring pipeline (Week 5).
 """
 
 from __future__ import annotations
 
+import json
 import logging
 import sys
+from datetime import UTC, datetime
 
 _CONFIGURED = False
 
@@ -38,3 +39,14 @@ def configure_logging(level: str = "INFO") -> None:
 def get_logger(name: str) -> logging.Logger:
     """Return a named logger."""
     return logging.getLogger(name)
+
+
+def log_event(logger: logging.Logger, **fields: object) -> None:
+    """Emit one structured (JSON) log line.
+
+    A ``ts`` timestamp is added automatically. Callers pass only
+    aggregated/metadata fields (wallet, stage, status, duration_ms, ...) —
+    never raw transaction content (privacy requirement).
+    """
+    payload = {"ts": datetime.now(UTC).isoformat(), **fields}
+    logger.info(json.dumps(payload, default=str))

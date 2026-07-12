@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import logging
 from datetime import UTC, datetime, timedelta
 
 import httpx
@@ -115,6 +117,40 @@ def test_persist_stage_failure_is_isolated(db_session: Session, monkeypatch) -> 
     outcome = pipeline.score_wallet(db_session, W1, _settings(), now=NOW)
     assert outcome.status == "error"
     assert outcome.stage == "persist"
+
+
+def _events(caplog) -> list[dict]:
+    return [
+        json.loads(r.getMessage())
+        for r in caplog.records
+        if r.name == "trust_api.pipeline" and r.getMessage().startswith("{")
+    ]
+
+
+@respx.mock
+def test_pipeline_emits_structured_stage_logs(db_session: Session, caplog) -> None:
+    caplog.set_level(logging.INFO, logger="trust_api.pipeline")
+    respx.get(BASE).mock(side_effect=_ok_response)
+    pipeline.score_wallet(db_session, W1, _settings(), now=NOW)
+    stages = [e for e in _events(caplog) if e.get("stage")]
+    assert {e["stage"] for e in stages} == {"ingest", "feature", "score", "persist"}
+    assert all(e["status"] == "ok" for e in stages)
+    assert all(e["wallet"] == W1 and e["scorer_version"] and "duration_ms" in e for e in stages)
+
+
+@respx.mock
+def test_pipeline_logs_stage_error_and_batch_summary(
+    db_session: Session, caplog, monkeypatch
+) -> None:
+    caplog.set_level(logging.INFO, logger="trust_api.pipeline")
+    respx.get(BASE).mock(side_effect=_ok_response)
+    monkeypatch.setattr(pipeline, "score", lambda *_a, **_k: (_ for _ in ()).throw(ValueError("x")))
+    pipeline.score_wallets(db_session, [W1], _settings(), now=NOW)
+    events = _events(caplog)
+    err = [e for e in events if e.get("stage") == "score"]
+    assert err and err[0]["status"] == "error" and err[0]["error_type"] == "ValueError"
+    summary = [e for e in events if e.get("event") == "batch_summary"]
+    assert summary and summary[0]["total"] == 1 and summary[0]["failed"] == 1
 
 
 def _wallet(session: Session, address: str) -> int:

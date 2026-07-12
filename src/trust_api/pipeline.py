@@ -17,14 +17,27 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from trust_api.config import Settings
+from trust_api.core.logging import get_logger, log_event
 from trust_api.db.models import TrustScoreHistory, Wallet, WalletFeature
 from trust_api.schemas.verify import Chain
 from trust_api.services.features import compute_features
 from trust_api.services.ingestion import ingest_wallet
 from trust_api.services.scoring import SCORER_VERSION, ScoringResult, score
 
+logger = get_logger(__name__)
+
 INGEST_CHAINS = (Chain.ethereum, Chain.arbitrum)
 STAGES = ("ingest", "feature", "score", "persist")
+
+
+def _ms(start: float) -> float:
+    return round((perf_counter() - start) * 1000, 3)
+
+
+class _StageFailed(Exception):
+    def __init__(self, stage: str, cause: Exception) -> None:
+        self.stage = stage
+        self.cause = cause
 
 
 @dataclass(frozen=True)
@@ -94,42 +107,48 @@ def score_wallet(
     import asyncio
 
     now = now or datetime.now(UTC)
+    ctx = {"wallet": address, "scorer_version": SCORER_VERSION}
     started = perf_counter()
 
-    def _err(stage: str, exc: Exception) -> WalletOutcome:
-        session.rollback()
+    def run_stage(stage: str, fn):
+        t = perf_counter()
+        try:
+            out = fn()
+        except Exception as exc:  # noqa: BLE001 - per-stage isolation
+            log_event(
+                logger,
+                stage=stage,
+                status="error",
+                error_type=type(exc).__name__,
+                duration_ms=_ms(t),
+                **ctx,
+            )
+            session.rollback()
+            raise _StageFailed(stage, exc) from exc
+        log_event(logger, stage=stage, status="ok", duration_ms=_ms(t), **ctx)
+        return out
+
+    try:
+        wallet_id = run_stage("ingest", lambda: asyncio.run(_ingest(session, address, settings)))
+        run_stage("feature", lambda: compute_features(session, wallet_id, now=now))
+        result = run_stage("score", lambda: score(_feature_row(session, wallet_id)))
+        run_stage("persist", lambda: _persist(session, wallet_id, result, now))
+    except _StageFailed as failed:
         return WalletOutcome(
             address=address,
             status="error",
-            stage=stage,
-            error_type=type(exc).__name__,
-            duration_ms=round((perf_counter() - started) * 1000, 3),
+            stage=failed.stage,
+            error_type=type(failed.cause).__name__,
+            duration_ms=_ms(started),
             result=None,
         )
-
-    try:
-        wallet_id = asyncio.run(_ingest(session, address, settings))
-    except Exception as exc:  # noqa: BLE001 - stage isolation
-        return _err("ingest", exc)
-    try:
-        compute_features(session, wallet_id, now=now)
-    except Exception as exc:  # noqa: BLE001
-        return _err("feature", exc)
-    try:
-        result = score(_feature_row(session, wallet_id))
-    except Exception as exc:  # noqa: BLE001
-        return _err("score", exc)
-    try:
-        _persist(session, wallet_id, result, now)
-    except Exception as exc:  # noqa: BLE001
-        return _err("persist", exc)
 
     return WalletOutcome(
         address=address,
         status="ok",
         stage=None,
         error_type=None,
-        duration_ms=round((perf_counter() - started) * 1000, 3),
+        duration_ms=_ms(started),
         result=result,
     )
 
@@ -141,13 +160,23 @@ def score_wallets(
     started = perf_counter()
     outcomes = [score_wallet(session, a, settings, now=now) for a in addresses]
     ok = sum(o.status == "ok" for o in outcomes)
-    return BatchSummary(
+    summary = BatchSummary(
         total=len(outcomes),
         ok=ok,
         failed=len(outcomes) - ok,
-        duration_ms=round((perf_counter() - started) * 1000, 3),
+        duration_ms=_ms(started),
         outcomes=outcomes,
     )
+    log_event(
+        logger,
+        event="batch_summary",
+        total=summary.total,
+        ok=summary.ok,
+        failed=summary.failed,
+        duration_ms=summary.duration_ms,
+        scorer_version=SCORER_VERSION,
+    )
+    return summary
 
 
 def known_wallet_addresses(session: Session) -> list[str]:
