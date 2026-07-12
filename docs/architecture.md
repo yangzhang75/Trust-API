@@ -70,6 +70,12 @@ For who calls this and why, see [`api-use-cases.md`](api-use-cases.md).
    to `proofs` (jsonb payload only). *Week 1: deterministic stub
    signature — not cryptographically meaningful.*
 
+**Pipeline (Week 5):** `pipeline.py` chains ingest → features → score →
+persist as one operable, scheduled stage — per-wallet failure isolation,
+append-only `trust_score_history` (per `scorer_version`), structured JSON
+logs, and counters at `/metrics`. Run via `python -m trust_api.jobs.score`
+or the background worker. See [`pipeline.md`](pipeline.md).
+
 ### Cross-cutting concerns
 
 - **Auth** — `X-API-Key` validated against a configured allowlist

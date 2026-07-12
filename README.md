@@ -182,6 +182,19 @@ python -m trust_api.jobs.split              # (re)build the committed train/test
 python -m trust_api.jobs.evaluate_scoring   # regenerate the eval report
 ```
 
+## Scoring pipeline (Week 5)
+
+The scoring path is an operable, scheduled pipeline (ingest → features →
+score → persist) with per-wallet failure isolation, append-only score
+history, structured JSON logs, and counters at `GET /metrics`. See
+[`docs/pipeline.md`](docs/pipeline.md).
+
+```bash
+python -m trust_api.jobs.score --wallet 0x...          # one wallet
+python -m trust_api.jobs.score --refresh-stale --hours 24
+python -m trust_api.jobs.score --refresh-all           # or `make score`
+```
+
 ## License
 
 Proprietary — internal internship project.
