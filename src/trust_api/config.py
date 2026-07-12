@@ -57,6 +57,8 @@ class Settings(BaseSettings):
     ingestion_cache_ttl_seconds: int = Field(default=21600, ge=0)
     # Background worker refresh interval (seconds).
     worker_interval_seconds: int = Field(default=3600, ge=1)
+    # Re-score wallets whose latest score is older than this many hours.
+    worker_stale_hours: int = Field(default=24, ge=1)
 
     @property
     def ingestion_provider_configured(self) -> bool:

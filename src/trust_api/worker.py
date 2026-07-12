@@ -94,6 +94,22 @@ def ingest_single(address: str) -> None:
         _refresh_features(session, [address])  # features follow ingestion
 
 
+def scheduled_score() -> dict[str, int]:
+    """Scheduled pass: run the full pipeline over wallets with stale scores."""
+    from trust_api.config import get_settings
+    from trust_api.pipeline import score_wallets, stale_wallet_addresses
+
+    settings = get_settings()
+    with get_sessionmaker()() as session:
+        addresses = stale_wallet_addresses(session, settings.worker_stale_hours)
+        if not addresses:
+            logger.info("no stale wallets to score")
+            return {"total": 0, "ok": 0, "failed": 0}
+        logger.info("scoring %d stale wallet(s)", len(addresses))
+        summary = score_wallets(session, addresses, settings)
+        return {"total": summary.total, "ok": summary.ok, "failed": summary.failed}
+
+
 def main(argv: list[str] | None = None) -> None:
     settings = get_settings()
     configure_logging(settings.log_level)
@@ -114,8 +130,10 @@ def main(argv: list[str] | None = None) -> None:
     from apscheduler.schedulers.blocking import BlockingScheduler
 
     scheduler = BlockingScheduler()
+    # Scheduled work is the full scoring pipeline over stale wallets
+    # (ingest -> features -> score -> persist).
     scheduler.add_job(
-        refresh_all,
+        scheduled_score,
         "interval",
         seconds=settings.worker_interval_seconds,
         next_run_time=None,

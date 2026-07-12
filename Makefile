@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help install run up down test lint fmt migrate seed worker features openapi
+.PHONY: help install run up down test lint fmt migrate seed worker features score openapi
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -39,6 +39,9 @@ worker: ## Run the background ingestion worker (one pass)
 
 features: ## Compute behavioral features for all wallets with transactions
 	python -m trust_api.jobs.compute_features
+
+score: ## Score wallets and write history (see --wallet/--batch/--refresh-stale/--refresh-all)
+	python -m trust_api.jobs.score --refresh-all
 
 openapi: ## Export the OpenAPI schema to docs/openapi.json
 	python scripts/export_openapi.py
