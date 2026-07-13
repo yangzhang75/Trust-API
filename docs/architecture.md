@@ -7,11 +7,12 @@ time-bounded signed proof.
 
 For who calls this and why, see [`api-use-cases.md`](api-use-cases.md).
 
-> **Week 1 status:** the full request path runs end-to-end, but every
-> pipeline stage returns **deterministic stub data derived from a hash of
-> the wallet address**. Real blockchain ingestion, feature engineering,
-> scoring/ML, Sybil detection, and cryptographic signing are stubbed
-> behind typed interfaces and marked with `# TODO(week N)`.
+> **Status (through Week 6):** the full request path runs end-to-end on
+> **real** components — multi-chain ingestion (Week 2/4), behavioral
+> features (Week 3), a transparent rule-based scorer (Week 4), an operable
+> pipeline with history + metrics (Week 5), and **real Ed25519-signed,
+> revocable proofs** (Week 6). Each stage was built behind the typed
+> interfaces fixed in Week 1.
 
 ## The pipeline
 
@@ -24,7 +25,7 @@ For who calls this and why, see [`api-use-cases.md`](api-use-cases.md).
    ┌────────────┐   ┌────────────┐   ┌────────────┐   ┌────────────┐
    │ Ingestion  │──▶│  Features  │──▶│  Scoring   │──▶│   Proof    │
    │ services/  │   │ services/  │   │ services/  │   │ services/  │
-   │ingestion.py│   │features.py │   │scoring.py  │   │ proof.py   │
+   │ingestion/  │   │features/   │   │scoring/    │   │ proof/     │
    └────────────┘   └────────────┘   └────────────┘   └────────────┘
         normalize        derive          assess           attest
        activity         features      tier/likelihood    sign + expire
@@ -65,10 +66,14 @@ For who calls this and why, see [`api-use-cases.md`](api-use-cases.md).
    thresholds live in `scoring/config.py`. No ML. See [`scoring.md`](scoring.md)
    and current results in [`scoring-eval.md`](scoring-eval.md). /verify now
    returns real scores. *Persisting to `trust_scores` is a later week.*
-4. **Proof** (`services/proof.py`) — issues a time-bounded attestation
-   (`issued_at`, `expires_at`, `valid_for_hours`, `signature`). Persisted
-   to `proofs` (jsonb payload only). *Week 1: deterministic stub
-   signature — not cryptographically meaningful.*
+4. **Proof** (`services/proof/`) — **real (Week 6):** issues a
+   time-bounded, privacy-preserving **Ed25519-signed** attestation over a
+   canonical form of the assessment (`keys.py` signing, `canonical.py`
+   serialization, `service.py` generate/verify). A third party verifies it
+   offline with only the public key (`GET /proof/public-key`); no raw tx
+   data is in the payload. Proofs are persisted to `proofs` (jsonb only) so
+   they can be revoked before expiry (`python -m trust_api.jobs.revoke`,
+   `POST /proof/verify`). See [`proof.md`](proof.md).
 
 **Pipeline (Week 5):** `pipeline.py` chains ingest → features → score →
 persist as one operable, scheduled stage — per-wallet failure isolation,
@@ -107,7 +112,8 @@ or the background worker. See [`pipeline.md`](pipeline.md).
 - **Contracts before logic.** The API shape, schemas, DB schema, and
   service interfaces are fixed in Week 1; later weeks fill in the bodies
   without breaking consumers.
-- **Deterministic stubs.** Stub outputs are a pure function of the wallet,
-  so tests and demos are stable.
+- **Deterministic scoring.** The rule engine is a pure function of the
+  wallet's features (no ML, no randomness), so scores are reproducible and
+  auditable. Proof `nonce`/`issued_at` are the only per-call variation.
 - **Privacy by construction.** Raw transaction data never leaves
   ingestion; only aggregated features and attestations are persisted.

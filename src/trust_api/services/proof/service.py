@@ -75,8 +75,7 @@ class ProofService:
         except SQLAlchemyError:
             session.rollback()
             logger.warning(
-                "proof persistence failed; issued proof is NOT revocable "
-                "(key_id=%s nonce=%s)",
+                "proof persistence failed; issued proof is NOT revocable " "(key_id=%s nonce=%s)",
                 proof.key_id,
                 proof.nonce,
             )

@@ -57,10 +57,17 @@ Example `200` response:
     "issued_at": "2026-06-24T18:00:00+00:00",
     "expires_at": "2026-06-25T18:00:00+00:00",
     "valid_for_hours": 24,
-    "signature": "stub-…"
+    "signature": "3q2+7w…",
+    "key_id": "9f86d081884c7d65",
+    "nonce": "1f0c…",
+    "scorer_version": "0.4.0-graph"
   }
 }
 ```
+
+The proof is a real Ed25519 signature. A third party can verify it offline
+with only the public key — see [Proof generation](#proof-generation-week-6)
+and [`docs/proof.md`](docs/proof.md).
 
 Error behavior: invalid wallet → `400`, missing/invalid API key → `401`,
 malformed body → `422`, rate limit exceeded → `429`.
@@ -101,9 +108,10 @@ make openapi   # export docs/openapi.json
 make test
 ```
 
-Covers `/health`, the `/verify` stub `200`, determinism, invalid wallet
-`400`, missing/invalid API key `401`, and malformed body `422`. Target
-coverage ≥80%.
+Covers `/health`, `/verify` (real scoring + signed proof), proof
+generation/verification (offline signature check, tamper/expiry/revocation
+/unknown-key), the ingestion ETL, features, scoring, and evaluation.
+Coverage gate: **100%**.
 
 ## Configuration
 
@@ -115,7 +123,8 @@ All settings are read from the environment (see [`.env.example`](.env.example)):
 | `RATE_LIMIT_PER_MINUTE` | `60` | Per-key fixed-window rate limit (Redis) |
 | `DATABASE_URL` | `postgresql+psycopg://trust:trust@localhost:5432/trust` | Postgres DSN |
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis URL |
-| `PROOF_VALID_FOR_HOURS` | `24` | Proof validity window |
+| `PROOF_SIGNING_KEY` | _(empty)_ | Base64 32-byte Ed25519 seed; blank = ephemeral dev key (warns) |
+| `PROOF_TTL_HOURS` | `24` | Proof validity window (hours until `expires_at`) |
 | `ENVIRONMENT` / `LOG_LEVEL` | `development` / `INFO` | App metadata / logging |
 | `ETHERSCAN_API_KEY` | _(empty)_ | Web3 provider key; blank disables live ingestion |
 | `INGESTION_CACHE_TTL_SECONDS` | `21600` | Redis TTL for cached wallet history (0 = off) |
@@ -143,6 +152,54 @@ still run — wallets are registered without transaction history. The
 `/verify` contract is unchanged; ingested data feeds later weeks, never the
 public API (raw transactions are internal-only).
 
+## Proof generation (Week 6)
+
+Every `/verify` response carries a real, expiring **Ed25519 signature** over
+a canonical form of the assessment. A third party can verify it *offline*
+using only the public key — no callback to this service. Raw wallet
+transaction data is never included in the proof (privacy). See
+[`docs/proof.md`](docs/proof.md) for the exact canonical rules and a
+copy-paste verification snippet.
+
+**Signing key.** Key material is read from the environment only, never
+committed. Generate a dev key and put it in `.env`:
+
+```bash
+python -c "import base64,os; print('PROOF_SIGNING_KEY=' + base64.b64encode(os.urandom(32)).decode())" >> .env
+```
+
+If `PROOF_SIGNING_KEY` is blank the app generates an **ephemeral** key at
+startup and logs a loud `WARNING` — proofs won't verify across restarts, so
+this is for local experimentation only, never production.
+
+**Fetch the public key** (stable `key_id` lets you support key rotation):
+
+```bash
+curl -s localhost:8000/proof/public-key
+# {"algorithm":"ed25519","key_id":"9f86d081884c7d65","public_key":"<base64>"}
+```
+
+**Verify a proof.** Submit a `/verify` response back to `POST /proof/verify`
+(convenience; the same check runs offline):
+
+```bash
+curl -s -X POST localhost:8000/proof/verify \
+  -H "Content-Type: application/json" -H "X-API-Key: dev-key" \
+  -d @verify_response.json
+# {"valid":true,"reason":"ok","key_id":"9f86d081884c7d65"}
+```
+
+`reason` is one of `ok`, `unknown_key`, `bad_signature`, `revoked`,
+`expired`. Revocation is checked server-side only (it needs our DB);
+signature and expiry are checkable anywhere.
+
+**Revoke** an issued proof before it expires:
+
+```bash
+python -m trust_api.jobs.revoke --proof-id 42
+python -m trust_api.jobs.revoke --wallet 0x52908400098527886E0F7030069857D2E4169EE7
+```
+
 ## Project layout
 
 ```
@@ -157,7 +214,7 @@ src/trust_api/
     ingestion/       # provider + transform + load (real, Week 2)
     features/        # SQL-aggregated behavioral features (real, Week 3)
     scoring/         # transparent rule engine + config (real, Week 4)
-    proof.py         # still stubbed (Week 6)
+    proof/           # Ed25519 signing, canonical form, verify (real, Week 6)
   db/                # session.py, models.py
   core/              # logging.py
 data/                # labeled_wallets.json (verified labeled dataset)

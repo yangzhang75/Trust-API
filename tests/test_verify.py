@@ -34,7 +34,7 @@ def _db_client(db) -> TestClient:
     return TestClient(app)
 
 
-def test_verify_returns_stub_assessment(client: TestClient) -> None:
+def test_verify_returns_signed_assessment(client: TestClient) -> None:
     resp = client.post(
         "/verify", json={"wallet": VALID_WALLET, "chains": ["ethereum"]}, headers=AUTH
     )
@@ -50,8 +50,13 @@ def test_verify_returns_stub_assessment(client: TestClient) -> None:
 
     proof = body["proof"]
     assert set(proof) == {
-        "issued_at", "expires_at", "valid_for_hours", "signature",
-        "key_id", "nonce", "scorer_version",
+        "issued_at",
+        "expires_at",
+        "valid_for_hours",
+        "signature",
+        "key_id",
+        "nonce",
+        "scorer_version",
     }
     assert proof["valid_for_hours"] >= 1
     assert len(base64.b64decode(proof["signature"])) == 64  # real Ed25519 sig
