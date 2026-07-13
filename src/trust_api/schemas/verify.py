@@ -94,6 +94,24 @@ class VerifyResponse(BaseModel):
     proof: Proof
 
 
+class ProofVerifyRequest(VerifyResponse):
+    """Request body for POST /proof/verify.
+
+    Deliberately the same shape as a VerifyResponse: a consumer submits back
+    exactly what /verify returned and we recheck it. Every signed field is
+    required to reconstruct the canonical payload the signature covers.
+    """
+
+
+class ProofVerifyResponse(BaseModel):
+    """200 response body for POST /proof/verify."""
+
+    valid: bool
+    # One of: ok, unknown_key, bad_signature, revoked, expired.
+    reason: str
+    key_id: str | None = None
+
+
 class ErrorResponse(BaseModel):
     """Uniform error envelope for documented 4xx responses."""
 

@@ -24,6 +24,8 @@ from trust_api.db.session import get_db
 from trust_api.schemas.verify import (
     ErrorResponse,
     Proof,
+    ProofVerifyRequest,
+    ProofVerifyResponse,
     VerifyRequest,
     VerifyResponse,
     is_valid_evm_wallet,
@@ -31,6 +33,8 @@ from trust_api.schemas.verify import (
 from trust_api.services.features import EMPTY_FEATURES, WalletFeatures, compute_features
 from trust_api.services.ingestion import IngestionError, ingest_wallet
 from trust_api.services.proof import ProofService, Signer
+from trust_api.services.proof.canonical import build_payload
+from trust_api.services.proof.models import Proof as ProofDTO
 from trust_api.services.scoring import score
 
 router = APIRouter()
@@ -119,3 +123,46 @@ def verify(
             scorer_version=signed.payload["scorer_version"],
         ),
     )
+
+
+@router.post(
+    "/proof/verify",
+    response_model=ProofVerifyResponse,
+    tags=["proof"],
+    summary="Verify a previously issued proof",
+    dependencies=[Depends(rate_limit)],  # requires a valid API key, then rate-limits
+    responses={
+        401: {"model": ErrorResponse, "description": "Missing or invalid API key"},
+        422: {"description": "Malformed request body"},
+        429: {"model": ErrorResponse, "description": "Rate limit exceeded"},
+    },
+)
+def verify_proof(
+    body: ProofVerifyRequest,
+    settings: Annotated[Settings, Depends(get_settings)],
+    signer: Annotated[Signer, Depends(get_signer)],
+    db: Annotated[Session | None, Depends(get_db)] = None,
+) -> ProofVerifyResponse:
+    """Recheck a submitted proof: reconstruct the canonical payload, verify the
+    signature/expiry with our key, and consult the DB for revocation.
+
+    This is a convenience endpoint; the same check runs offline with only the
+    public key (see docs/proof.md). Revocation is only consulted when a DB is
+    available.
+    """
+    payload = build_payload(
+        wallet=body.wallet,
+        human_likelihood=body.human_likelihood.value,
+        trust_tier=body.trust_tier.value,
+        confidence_score=body.confidence_score,
+        risk_flags=[f.value for f in body.risk_flags],
+        chains=[c.value for c in body.chains],
+        scorer_version=body.proof.scorer_version,
+        key_id=body.proof.key_id,
+        issued_at=body.proof.issued_at,
+        expires_at=body.proof.expires_at,
+        nonce=body.proof.nonce,
+    )
+    proof = ProofDTO(payload=payload, signature=body.proof.signature)
+    result = ProofService(signer, settings.proof_ttl_hours).verify(proof, session=db)
+    return ProofVerifyResponse(valid=result.valid, reason=result.reason, key_id=result.key_id)

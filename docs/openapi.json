@@ -79,6 +79,85 @@
         "title": "Proof",
         "type": "object"
       },
+      "ProofVerifyRequest": {
+        "description": "Request body for POST /proof/verify.\n\nDeliberately the same shape as a VerifyResponse: a consumer submits back\nexactly what /verify returned and we recheck it. Every signed field is\nrequired to reconstruct the canonical payload the signature covers.",
+        "properties": {
+          "chains": {
+            "items": {
+              "$ref": "#/components/schemas/Chain"
+            },
+            "title": "Chains",
+            "type": "array"
+          },
+          "confidence_score": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence Score",
+            "type": "number"
+          },
+          "human_likelihood": {
+            "$ref": "#/components/schemas/HumanLikelihood"
+          },
+          "proof": {
+            "$ref": "#/components/schemas/Proof"
+          },
+          "risk_flags": {
+            "items": {
+              "$ref": "#/components/schemas/RiskFlag"
+            },
+            "title": "Risk Flags",
+            "type": "array"
+          },
+          "trust_tier": {
+            "$ref": "#/components/schemas/TrustTier"
+          },
+          "wallet": {
+            "title": "Wallet",
+            "type": "string"
+          }
+        },
+        "required": [
+          "wallet",
+          "human_likelihood",
+          "trust_tier",
+          "confidence_score",
+          "risk_flags",
+          "chains",
+          "proof"
+        ],
+        "title": "ProofVerifyRequest",
+        "type": "object"
+      },
+      "ProofVerifyResponse": {
+        "description": "200 response body for POST /proof/verify.",
+        "properties": {
+          "key_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Id"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "valid": {
+            "title": "Valid",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "valid",
+          "reason"
+        ],
+        "title": "ProofVerifyResponse",
+        "type": "object"
+      },
       "RiskFlag": {
         "description": "Risk signals attached to an assessment (Week 4: emitted by real rules).",
         "enum": [
@@ -261,6 +340,66 @@
           }
         },
         "summary": "Fetch the proof verification key",
+        "tags": [
+          "proof"
+        ]
+      }
+    },
+    "/proof/verify": {
+      "post": {
+        "description": "Recheck a submitted proof: reconstruct the canonical payload, verify the\nsignature/expiry with our key, and consult the DB for revocation.\n\nThis is a convenience endpoint; the same check runs offline with only the\npublic key (see docs/proof.md). Revocation is only consulted when a DB is\navailable.",
+        "operationId": "verify_proof_proof_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProofVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProofVerifyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Missing or invalid API key"
+          },
+          "422": {
+            "description": "Malformed request body"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Verify a previously issued proof",
         "tags": [
           "proof"
         ]
