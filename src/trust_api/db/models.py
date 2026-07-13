@@ -189,6 +189,9 @@ class Proof(Base):
     issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     valid_for_hours: Mapped[int] = mapped_column(Integer, nullable=False)
+    # Week 6: real signing.
+    key_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    revoked: Mapped[bool] = mapped_column(Boolean, server_default="false", nullable=False)
 
     wallet: Mapped[Wallet] = relationship(back_populates="proofs")
 

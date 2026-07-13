@@ -8,5 +8,15 @@ from __future__ import annotations
 
 from trust_api.services.proof.keys import Signer, load_signer, verify_signature
 from trust_api.services.proof.legacy import issue_proof
+from trust_api.services.proof.models import Proof, VerificationResult
+from trust_api.services.proof.service import ProofService
 
-__all__ = ["Signer", "issue_proof", "load_signer", "verify_signature"]
+__all__ = [
+    "Proof",
+    "ProofService",
+    "Signer",
+    "VerificationResult",
+    "issue_proof",
+    "load_signer",
+    "verify_signature",
+]
