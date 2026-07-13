@@ -38,8 +38,11 @@ class Settings(BaseSettings):
     database_url: str = Field(default="postgresql+psycopg://trust:trust@localhost:5432/trust")
     redis_url: str = Field(default="redis://localhost:6379/0")
 
-    # --- Proof issuance (stub config; real signing arrives later) ---
+    # --- Proof issuance (Week 6: real Ed25519 signing) ---
     proof_valid_for_hours: int = Field(default=24, ge=1)
+    # base64-encoded 32-byte Ed25519 private seed; empty -> ephemeral dev key.
+    proof_signing_key: str = Field(default="")
+    proof_ttl_hours: int = Field(default=24, ge=1)
 
     # --- Ingestion (Week 2) ---
     # Etherscan V2 unified API; one key works across chains via chainid.
