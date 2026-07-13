@@ -82,3 +82,25 @@ def db_session(db_engine: Engine) -> Iterator[Session]:
     finally:
         session.rollback()
         session.close()
+
+
+@pytest.fixture
+def metrics_redis() -> Iterator[object]:
+    """Reset the shared Redis-backed metrics store; skip if Redis is down.
+
+    CI provides a Redis service. Contributors without a local Redis are
+    skipped rather than blocked (mirrors the Postgres fixture).
+    """
+    import redis as redis_lib
+
+    from trust_api.core.metrics import METRICS
+
+    try:
+        METRICS._redis().ping()
+    except redis_lib.RedisError:
+        pytest.skip("no Redis available for metrics tests")
+    METRICS.reset()
+    try:
+        yield METRICS
+    finally:
+        METRICS.reset()
