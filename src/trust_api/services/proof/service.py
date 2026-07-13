@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import secrets
 from datetime import UTC, datetime, timedelta
 
@@ -12,8 +13,8 @@ from sqlalchemy.orm import Session
 from trust_api.db.models import Proof as ProofRow
 from trust_api.db.models import Wallet
 from trust_api.services.proof.canonical import build_payload, canonical_bytes
-from trust_api.services.proof.keys import Signer
-from trust_api.services.proof.models import Proof
+from trust_api.services.proof.keys import Signer, verify_signature
+from trust_api.services.proof.models import Proof, VerificationResult
 from trust_api.services.scoring import SCORER_VERSION, ScoringResult
 
 
@@ -55,6 +56,48 @@ class ProofService:
         if session is not None:
             self._persist(session, wallet, proof, now, expires)
         return proof
+
+    def verify(
+        self, proof: Proof, *, session: Session | None = None, now: datetime | None = None
+    ) -> VerificationResult:
+        """Verify a proof. Order: unknown_key -> bad_signature -> revoked -> expired -> ok.
+
+        Revocation is only checked when a session is provided (it requires
+        our database); signature + expiry are checkable offline with just
+        the public key.
+        """
+        now = now or datetime.now(UTC)
+        key_id = proof.payload.get("key_id")
+        if key_id != self._signer.key_id:
+            return VerificationResult(valid=False, reason="unknown_key", key_id=key_id)
+
+        try:
+            signature = base64.b64decode(proof.signature, validate=True)
+        except (binascii.Error, ValueError):
+            return VerificationResult(valid=False, reason="bad_signature", key_id=key_id)
+        if not verify_signature(
+            self._signer.public_bytes, canonical_bytes(proof.payload), signature
+        ):
+            return VerificationResult(valid=False, reason="bad_signature", key_id=key_id)
+
+        if session is not None and self._is_revoked(session, proof):
+            return VerificationResult(valid=False, reason="revoked", key_id=key_id)
+
+        if now > datetime.fromisoformat(proof.payload["expires_at"]):
+            return VerificationResult(valid=False, reason="expired", key_id=key_id)
+
+        return VerificationResult(valid=True, reason="ok", key_id=key_id)
+
+    @staticmethod
+    def _is_revoked(session: Session, proof: Proof) -> bool:
+        return (
+            session.execute(
+                select(ProofRow.id).where(
+                    ProofRow.signature == proof.signature, ProofRow.revoked.is_(True)
+                )
+            ).first()
+            is not None
+        )
 
     def _persist(
         self, session: Session, wallet: str, proof: Proof, issued_at: datetime, expires_at: datetime
