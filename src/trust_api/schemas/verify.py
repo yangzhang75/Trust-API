@@ -7,18 +7,16 @@ the framework's default 422.
 
 from __future__ import annotations
 
-import re
 from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
 
-# EVM address: 0x followed by 40 hex chars. Solana support arrives in Week 2.
-EVM_WALLET_REGEX = re.compile(r"^0x[a-fA-F0-9]{40}$")
-
-
-def is_valid_evm_wallet(wallet: str) -> bool:
-    """Return True if ``wallet`` is a syntactically valid EVM address."""
-    return bool(EVM_WALLET_REGEX.match(wallet))
+# The wallet-format validator lives in core.validation (the single source of
+# truth shared by /verify and every scoring/ingestion entry point). Re-exported
+# here so existing importers of the API schema keep working.
+from trust_api.core.validation import (
+    is_valid_evm_wallet as is_valid_evm_wallet,
+)
 
 
 class Chain(StrEnum):

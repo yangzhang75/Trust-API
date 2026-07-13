@@ -81,6 +81,15 @@ def test_resolve_refresh_stale_mode(db_session: Session) -> None:
 # --- run + main -----------------------------------------------------------
 
 
+def test_run_rejects_invalid_address(db_session: Session) -> None:
+    # H2 at the CLI entry point: a malformed --wallet/--batch address is
+    # rejected at the validate stage (no provider call, respx not armed).
+    summary = score_job.run(db_session, ["not_an_address"], _settings())
+    assert summary.total == 1
+    assert summary.failed == 1
+    assert summary.outcomes[0].stage == "validate"
+
+
 @respx.mock
 def test_run_scores_and_persists(db_session: Session) -> None:
     respx.get(BASE).mock(side_effect=_ok)

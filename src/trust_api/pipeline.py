@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from trust_api.config import Settings
 from trust_api.core.logging import get_logger, log_event
 from trust_api.core.metrics import METRICS
+from trust_api.core.validation import require_valid_wallet
 from trust_api.db.models import TrustScoreHistory, Wallet, WalletFeature
 from trust_api.schemas.verify import Chain
 from trust_api.services.features import compute_features
@@ -28,7 +29,7 @@ from trust_api.services.scoring import SCORER_VERSION, ScoringResult, score
 logger = get_logger(__name__)
 
 INGEST_CHAINS = (Chain.ethereum, Chain.arbitrum)
-STAGES = ("ingest", "feature", "score", "persist")
+STAGES = ("validate", "ingest", "feature", "score", "persist")
 
 
 def _ms(start: float) -> float:
@@ -130,6 +131,7 @@ def score_wallet(
         return out
 
     try:
+        run_stage("validate", lambda: require_valid_wallet(address))
         wallet_id = run_stage("ingest", lambda: asyncio.run(_ingest(session, address, settings)))
         run_stage("feature", lambda: compute_features(session, wallet_id, now=now))
         result = run_stage("score", lambda: score(_feature_row(session, wallet_id)))

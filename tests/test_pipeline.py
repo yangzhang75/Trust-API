@@ -62,6 +62,30 @@ def test_score_wallet_happy_writes_history(db_session: Session) -> None:
     assert rows[0].scorer_version == pipeline.SCORER_VERSION
 
 
+def test_score_wallet_rejects_invalid_address(db_session: Session) -> None:
+    # H2: a malformed address fails at the validate stage, before any provider
+    # call — no ingest, no persisted score. (respx not armed: no HTTP expected.)
+    outcome = pipeline.score_wallet(db_session, "0xdeadbeef", _settings(), now=NOW)
+    assert outcome.status == "error"
+    assert outcome.stage == "validate"
+    assert outcome.error_type == "InvalidWalletError"
+    rows = db_session.execute(select(func.count(TrustScoreHistory.id))).scalar_one()
+    assert rows == 0  # nothing persisted for the invalid address
+
+
+@respx.mock
+def test_batch_rejects_invalid_address_but_scores_valid(db_session: Session) -> None:
+    # H2 at the batch entry point: bad rejected at validate, good still scored.
+    respx.get(BASE).mock(side_effect=_ok_response)
+    summary = pipeline.score_wallets(db_session, ["not_an_address", W1], _settings(), now=NOW)
+    assert summary.total == 2
+    assert summary.ok == 1
+    assert summary.failed == 1
+    by_addr = {o.address: o for o in summary.outcomes}
+    assert by_addr["not_an_address"].stage == "validate"
+    assert by_addr[W1].status == "ok"
+
+
 @respx.mock
 def test_batch_isolates_a_failing_wallet(db_session: Session) -> None:
     def responder(request: httpx.Request) -> httpx.Response:
@@ -133,7 +157,7 @@ def test_pipeline_emits_structured_stage_logs(db_session: Session, caplog) -> No
     respx.get(BASE).mock(side_effect=_ok_response)
     pipeline.score_wallet(db_session, W1, _settings(), now=NOW)
     stages = [e for e in _events(caplog) if e.get("stage")]
-    assert {e["stage"] for e in stages} == {"ingest", "feature", "score", "persist"}
+    assert {e["stage"] for e in stages} == {"validate", "ingest", "feature", "score", "persist"}
     assert all(e["status"] == "ok" for e in stages)
     assert all(e["wallet"] == W1 and e["scorer_version"] and "duration_ms" in e for e in stages)
 

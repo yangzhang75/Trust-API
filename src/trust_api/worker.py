@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from trust_api.config import Settings, get_settings
 from trust_api.core.logging import configure_logging, get_logger
+from trust_api.core.validation import is_valid_evm_wallet
 from trust_api.db.models import Wallet
 from trust_api.db.session import get_sessionmaker
 from trust_api.schemas.verify import Chain
@@ -42,6 +43,10 @@ async def ingest_wallets(
     """
     results: dict[str, int | None] = {}
     for address in addresses:
+        if not is_valid_evm_wallet(address):
+            logger.warning("skipping invalid wallet address: %s", address)
+            results[address] = None
+            continue
         try:
             result = await ingest_wallet(session, address, chain, settings=settings)
             results[address] = result.inserted

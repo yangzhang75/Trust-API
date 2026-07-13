@@ -56,6 +56,15 @@ async def test_ingest_wallets_success(db_session: Session) -> None:
     assert results == {W1: 1, W2: 1}
 
 
+async def test_ingest_wallets_skips_invalid_address(db_session: Session) -> None:
+    # H2: worker ingestion rejects malformed addresses before any provider call
+    # (respx not armed — no HTTP request must be made for an invalid address).
+    results = await ingest_wallets(
+        db_session, ["0xdeadbeef", "not_an_address"], Chain.ethereum, settings=_settings()
+    )
+    assert results == {"0xdeadbeef": None, "not_an_address": None}
+
+
 @respx.mock
 async def test_ingest_wallets_isolates_failures(db_session: Session) -> None:
     # Provider returns a hard error: each wallet fails but the pass continues.
