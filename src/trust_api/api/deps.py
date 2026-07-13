@@ -25,6 +25,11 @@ def get_settings(request: Request) -> Settings:
     return request.app.state.settings
 
 
+def get_signer(request: Request):
+    """Resolve the process signing key, stashed on app.state by the factory."""
+    return request.app.state.signer
+
+
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 
 

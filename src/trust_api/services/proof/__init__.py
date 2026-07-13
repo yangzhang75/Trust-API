@@ -1,13 +1,8 @@
-"""Proof subsystem.
-
-Week 6 adds real Ed25519 signing (keys.py). The Week-1 stub issue_proof is
-kept in legacy.py until /verify is wired to the real ProofService.
-"""
+"""Proof subsystem — real Ed25519-signed trust proofs (Week 6)."""
 
 from __future__ import annotations
 
 from trust_api.services.proof.keys import Signer, load_signer, verify_signature
-from trust_api.services.proof.legacy import issue_proof
 from trust_api.services.proof.models import Proof, VerificationResult
 from trust_api.services.proof.service import ProofService
 
@@ -16,7 +11,6 @@ __all__ = [
     "ProofService",
     "Signer",
     "VerificationResult",
-    "issue_proof",
     "load_signer",
     "verify_signature",
 ]

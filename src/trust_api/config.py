@@ -39,7 +39,6 @@ class Settings(BaseSettings):
     redis_url: str = Field(default="redis://localhost:6379/0")
 
     # --- Proof issuance (Week 6: real Ed25519 signing) ---
-    proof_valid_for_hours: int = Field(default=24, ge=1)
     # base64-encoded 32-byte Ed25519 private seed; empty -> ephemeral dev key.
     proof_signing_key: str = Field(default="")
     proof_ttl_hours: int = Field(default=24, ge=1)

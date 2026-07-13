@@ -8,7 +8,6 @@ the framework's default 422.
 from __future__ import annotations
 
 import re
-from datetime import datetime
 from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -67,16 +66,20 @@ class VerifyRequest(BaseModel):
 
 
 class Proof(BaseModel):
-    """A time-bounded, signed attestation of an assessment.
+    """A time-bounded, Ed25519-signed attestation of an assessment.
 
-    Week 1 signatures are deterministic stubs and MUST NOT be trusted as
-    cryptographic proofs.
+    ``issued_at`` / ``expires_at`` are the EXACT ISO-8601 strings that were
+    signed (verbatim, not re-serialized), so a verifier can reconstruct the
+    byte-identical canonical payload. See docs/proof.md.
     """
 
-    issued_at: datetime
-    expires_at: datetime
+    issued_at: str
+    expires_at: str
     valid_for_hours: int = Field(..., ge=1)
-    signature: str
+    signature: str  # base64 Ed25519 signature over the canonical payload
+    key_id: str
+    nonce: str
+    scorer_version: str
 
 
 class VerifyResponse(BaseModel):

@@ -35,16 +35,26 @@
         "type": "string"
       },
       "Proof": {
-        "description": "A time-bounded, signed attestation of an assessment.\n\nWeek 1 signatures are deterministic stubs and MUST NOT be trusted as\ncryptographic proofs.",
+        "description": "A time-bounded, Ed25519-signed attestation of an assessment.\n\n``issued_at`` / ``expires_at`` are the EXACT ISO-8601 strings that were\nsigned (verbatim, not re-serialized), so a verifier can reconstruct the\nbyte-identical canonical payload. See docs/proof.md.",
         "properties": {
           "expires_at": {
-            "format": "date-time",
             "title": "Expires At",
             "type": "string"
           },
           "issued_at": {
-            "format": "date-time",
             "title": "Issued At",
+            "type": "string"
+          },
+          "key_id": {
+            "title": "Key Id",
+            "type": "string"
+          },
+          "nonce": {
+            "title": "Nonce",
+            "type": "string"
+          },
+          "scorer_version": {
+            "title": "Scorer Version",
             "type": "string"
           },
           "signature": {
@@ -61,7 +71,10 @@
           "issued_at",
           "expires_at",
           "valid_for_hours",
-          "signature"
+          "signature",
+          "key_id",
+          "nonce",
+          "scorer_version"
         ],
         "title": "Proof",
         "type": "object"
@@ -227,9 +240,35 @@
         ]
       }
     },
+    "/proof/public-key": {
+      "get": {
+        "description": "Public key consumers use to verify proofs locally (no callback).",
+        "operationId": "public_key_proof_public_key_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Public Key Proof Public Key Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Fetch the proof verification key",
+        "tags": [
+          "proof"
+        ]
+      }
+    },
     "/verify": {
       "post": {
-        "description": "Resolve features, score them with the rule engine, and return the result.",
+        "description": "Resolve features, score them, and return a signed proof.",
         "operationId": "verify_verify_post",
         "requestBody": {
           "content": {

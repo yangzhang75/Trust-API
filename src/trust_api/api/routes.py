@@ -3,7 +3,7 @@
 POST /verify runs the real pipeline: resolve the wallet's behavioral
 features (ingesting + computing them on demand when a provider is
 configured), score them with the transparent rule engine, and return the
-assessment. Proof signing is still stubbed (Week 6).
+assessment together with a real Ed25519-signed, expiring proof.
 """
 
 from __future__ import annotations
@@ -16,20 +16,21 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from trust_api.api.deps import get_settings, rate_limit
+from trust_api.api.deps import get_settings, get_signer, rate_limit
 from trust_api.config import Settings
 from trust_api.core.logging import get_logger
 from trust_api.db.models import Wallet, WalletFeature
 from trust_api.db.session import get_db
 from trust_api.schemas.verify import (
     ErrorResponse,
+    Proof,
     VerifyRequest,
     VerifyResponse,
     is_valid_evm_wallet,
 )
-from trust_api.services import proof
 from trust_api.services.features import EMPTY_FEATURES, WalletFeatures, compute_features
 from trust_api.services.ingestion import IngestionError, ingest_wallet
+from trust_api.services.proof import ProofService, Signer
 from trust_api.services.scoring import score
 
 router = APIRouter()
@@ -82,9 +83,10 @@ def _resolve_features(
 def verify(
     body: VerifyRequest,
     settings: Annotated[Settings, Depends(get_settings)],
+    signer: Annotated[Signer, Depends(get_signer)],
     db: Annotated[Session | None, Depends(get_db)] = None,
 ) -> VerifyResponse:
-    """Resolve features, score them with the rule engine, and return the result."""
+    """Resolve features, score them, and return a signed proof."""
     if not is_valid_evm_wallet(body.wallet):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -93,7 +95,12 @@ def verify(
 
     features = _resolve_features(db, body.wallet, settings) or EMPTY_FEATURES
     result = score(features)
-    issued = proof.issue_proof(body.wallet, result, valid_for_hours=settings.proof_valid_for_hours)
+    signed = ProofService(signer, settings.proof_ttl_hours).generate(
+        wallet=body.wallet,
+        result=result,
+        chains=[c.value for c in body.chains],
+        session=db,
+    )
 
     return VerifyResponse(
         wallet=body.wallet,
@@ -102,5 +109,13 @@ def verify(
         confidence_score=result.confidence_score,
         risk_flags=result.risk_flags,
         chains=body.chains,
-        proof=issued,
+        proof=Proof(
+            issued_at=signed.issued_at,
+            expires_at=signed.expires_at,
+            valid_for_hours=settings.proof_ttl_hours,
+            signature=signed.signature,
+            key_id=signed.key_id,
+            nonce=signed.nonce,
+            scorer_version=signed.payload["scorer_version"],
+        ),
     )

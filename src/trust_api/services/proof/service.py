@@ -8,14 +8,18 @@ import secrets
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from trust_api.core.logging import get_logger
 from trust_api.db.models import Proof as ProofRow
 from trust_api.db.models import Wallet
 from trust_api.services.proof.canonical import build_payload, canonical_bytes
 from trust_api.services.proof.keys import Signer, verify_signature
 from trust_api.services.proof.models import Proof, VerificationResult
 from trust_api.services.scoring import SCORER_VERSION, ScoringResult
+
+logger = get_logger(__name__)
 
 
 class ProofService:
@@ -54,8 +58,28 @@ class ProofService:
         signature = base64.b64encode(self._signer.sign(canonical_bytes(payload))).decode("ascii")
         proof = Proof(payload=payload, signature=signature)
         if session is not None:
-            self._persist(session, wallet, proof, now, expires)
+            self._persist_best_effort(session, wallet, proof, now, expires)
         return proof
+
+    def _persist_best_effort(
+        self, session: Session, wallet: str, proof: Proof, issued_at: datetime, expires_at: datetime
+    ) -> None:
+        """Persist the proof so it can later be revoked; degrade if the DB fails.
+
+        The proof is cryptographically valid regardless of persistence — only
+        revocation tracking depends on the row. A DB outage must not fail
+        /verify, but it MUST be visible: this proof cannot be revoked.
+        """
+        try:
+            self._persist(session, wallet, proof, issued_at, expires_at)
+        except SQLAlchemyError:
+            session.rollback()
+            logger.warning(
+                "proof persistence failed; issued proof is NOT revocable "
+                "(key_id=%s nonce=%s)",
+                proof.key_id,
+                proof.nonce,
+            )
 
     def verify(
         self, proof: Proof, *, session: Session | None = None, now: datetime | None = None
