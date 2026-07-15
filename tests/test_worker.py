@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from trust_api import worker as worker_mod
 from trust_api.config import Settings
 from trust_api.db.models import WalletFeature
+from trust_api.pipeline import BatchSummary
 from trust_api.schemas.verify import Chain
 from trust_api.services.ingestion import load_transactions
 from trust_api.worker import ingest_single, ingest_wallets, main, refresh_all
@@ -151,15 +152,43 @@ def test_main_wallet(monkeypatch) -> None:
     assert seen["addr"] == W1
 
 
-def test_main_scheduled(monkeypatch) -> None:
-    monkeypatch.setattr(worker_mod, "refresh_all", lambda: {})
+def test_main_scheduled_wires_and_triggers_scoring(monkeypatch) -> None:
+    # main() must register the SCORING job (scheduled_score), not refresh_all,
+    # and starting the scheduler must not block.
+    captured: dict = {}
 
     class _FakeScheduler:
-        def add_job(self, *a, **k) -> None:
-            pass
+        def add_job(self, func, *a, **k) -> None:
+            captured["func"] = func
 
         def start(self) -> None:  # returns instead of blocking
-            pass
+            captured["started"] = True
 
     monkeypatch.setattr("apscheduler.schedulers.blocking.BlockingScheduler", _FakeScheduler)
-    main([])  # scheduled mode; must not block
+    main([])
+    assert captured["func"] is worker_mod.scheduled_score  # correct job wired
+    assert captured["started"] is True
+
+    # Firing the registered job must actually run the scoring pipeline over
+    # the stale wallets (this is what the old test never verified).
+    calls: dict = {}
+
+    class _Ctx:
+        def __enter__(self):
+            return object()
+
+        def __exit__(self, *a) -> bool:
+            return False
+
+    monkeypatch.setattr(worker_mod, "get_sessionmaker", lambda: (lambda: _Ctx()))
+    monkeypatch.setattr("trust_api.pipeline.stale_wallet_addresses", lambda *a, **k: [W1])
+
+    def _spy_score_wallets(session, addresses, settings, **k):
+        calls["addresses"] = addresses
+        return BatchSummary(
+            total=len(addresses), ok=len(addresses), failed=0, duration_ms=0.0, outcomes=[]
+        )
+
+    monkeypatch.setattr("trust_api.pipeline.score_wallets", _spy_score_wallets)
+    captured["func"]()  # invoke scheduled_score
+    assert calls["addresses"] == [W1]  # score_wallets was invoked with the stale wallet
