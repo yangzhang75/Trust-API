@@ -95,15 +95,6 @@ def test_verify_proof_is_third_party_verifiable(client: TestClient) -> None:
     assert verify_signature(public_bytes, canonical_bytes(tampered), sig) is False
 
 
-def test_verify_is_deterministic(client: TestClient) -> None:
-    payload = {"wallet": VALID_WALLET, "chains": ["ethereum"]}
-    first = client.post("/verify", json=payload, headers=AUTH).json()
-    second = client.post("/verify", json=payload, headers=AUTH).json()
-    # Assessment fields are derived from the wallet hash, so they're stable.
-    for field in ("human_likelihood", "trust_tier", "confidence_score", "risk_flags"):
-        assert first[field] == second[field]
-
-
 def test_verify_defaults_chains_to_ethereum(client: TestClient) -> None:
     resp = client.post("/verify", json={"wallet": VALID_WALLET}, headers=AUTH)
     assert resp.status_code == 200

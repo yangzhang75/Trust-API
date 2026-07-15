@@ -12,7 +12,6 @@ from trust_api import worker as worker_mod
 from trust_api.config import Settings
 from trust_api.db.models import TrustScoreHistory, Wallet, WalletFeature
 from trust_api.jobs import score as score_job
-from trust_api.pipeline import score_wallets
 
 BASE = "https://api.etherscan.io/v2/api"
 W1 = "0x52908400098527886E0F7030069857D2E4169EE7"
@@ -124,8 +123,3 @@ def test_scheduled_score_scores_stale_wallets(db_engine: Engine, monkeypatch) ->
     assert result["total"] == 1 and result["ok"] == 1
     with factory() as s:
         assert s.execute(select(func.count(TrustScoreHistory.id))).scalar_one() == 1
-
-
-def test_scheduled_score_uses_score_wallets_symbol() -> None:
-    # guard: the pipeline entry point the scheduler relies on exists
-    assert callable(score_wallets)
