@@ -73,6 +73,30 @@ def _use_migrations() -> bool:
     return os.environ.get("TEST_USE_MIGRATIONS") == "1"
 
 
+_PG_HINT = "start Postgres (e.g. `docker start tapi-testpg`, or a postgres:16 container)"
+_REDIS_HINT = "start Redis (e.g. `docker start tapi-testredis`, or a redis:7 container)"
+
+
+def _require_service(ok: bool, name: str, hint: str) -> None:
+    """Fail loudly when a required service is missing.
+
+    Silently skipping service-backed tests lets the suite report green while
+    the entire integration/chaos layer never ran ("green suite that ran 100
+    of 197"). So by default a missing service is a hard failure. Set
+    ALLOW_SKIP_TEST_SERVICES=1 to opt into skipping instead (explicit, for
+    intentional unit-only local runs).
+    """
+    if ok:
+        return
+    if os.environ.get("ALLOW_SKIP_TEST_SERVICES") == "1":
+        pytest.skip(f"{name} unavailable (ALLOW_SKIP_TEST_SERVICES=1)")
+    pytest.fail(
+        f"{name} is required for this test but is not reachable — {hint}. "
+        f"To skip service-backed tests explicitly, set ALLOW_SKIP_TEST_SERVICES=1.",
+        pytrace=False,
+    )
+
+
 @pytest.fixture
 def settings() -> Settings:
     """Settings with a known API key and rate limit for tests."""
@@ -103,6 +127,7 @@ def db_engine() -> Iterator[Engine]:
     service. By default the schema is built with ``create_all`` (fast); when
     ``TEST_USE_MIGRATIONS=1`` it is built by running the Alembic migrations,
     so the whole suite can be exercised against the migrated schema in CI.
+    A missing Postgres is a hard failure (see ``_require_service``).
     """
     url = _test_db_url()
     engine = create_engine(url)
@@ -110,7 +135,7 @@ def db_engine() -> Iterator[Engine]:
         engine.connect().close()
     except OperationalError:
         engine.dispose()
-        pytest.skip("no Postgres available for DB tests")
+        _require_service(False, "Postgres", _PG_HINT)
 
     if _use_migrations():
         _reset_public_schema(engine)  # clean slate incl. alembic_version
@@ -137,7 +162,7 @@ def raw_pg_engine() -> Iterator[Engine]:
         engine.connect().close()
     except OperationalError:
         engine.dispose()
-        pytest.skip("no Postgres available for migration tests")
+        _require_service(False, "Postgres", _PG_HINT)
     try:
         yield engine
     finally:
@@ -158,10 +183,10 @@ def db_session(db_engine: Engine) -> Iterator[Session]:
 
 @pytest.fixture
 def metrics_redis() -> Iterator[object]:
-    """Reset the shared Redis-backed metrics store; skip if Redis is down.
+    """Reset the shared Redis-backed metrics store.
 
-    CI provides a Redis service. Contributors without a local Redis are
-    skipped rather than blocked (mirrors the Postgres fixture).
+    CI provides a Redis service. A missing Redis is a hard failure (see
+    ``_require_service``) so metrics tests can't be silently skipped.
     """
     import redis as redis_lib
 
@@ -170,7 +195,7 @@ def metrics_redis() -> Iterator[object]:
     try:
         METRICS._redis().ping()
     except redis_lib.RedisError:
-        pytest.skip("no Redis available for metrics tests")
+        _require_service(False, "Redis", _REDIS_HINT)
     METRICS.reset()
     try:
         yield METRICS
