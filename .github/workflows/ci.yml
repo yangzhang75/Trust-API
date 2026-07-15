@@ -59,3 +59,58 @@ jobs:
 
       - name: Pytest with coverage
         run: pytest --cov=trust_api --cov-report=term-missing --cov-fail-under=100
+
+  # Proves the Alembic migrations apply cleanly on a fresh DB AND that the
+  # whole suite passes against the migrated schema (not just create_all).
+  migration-check:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: trust
+          POSTGRES_PASSWORD: trust
+          POSTGRES_DB: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U trust -d trust"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      API_KEYS: "test-key"
+      REDIS_URL: "redis://localhost:6379/0"
+      DATABASE_URL: "postgresql+psycopg://trust:trust@localhost:5432/trust"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Alembic upgrade head applies cleanly on a fresh DB
+        run: alembic upgrade head
+
+      - name: Pytest against the migrated schema
+        env:
+          TEST_USE_MIGRATIONS: "1"
+        run: pytest -q

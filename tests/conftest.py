@@ -8,10 +8,11 @@ from __future__ import annotations
 
 import os
 from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session, sessionmaker
@@ -21,6 +22,55 @@ from trust_api.db.session import Base, get_db
 from trust_api.main import create_app
 
 TEST_API_KEY = "test-key"
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _test_db_url() -> str:
+    """Resolve the test Postgres URL (CI/local override → app default)."""
+    return (
+        os.environ.get("TEST_DATABASE_URL")
+        or os.environ.get("DATABASE_URL")
+        or Settings().database_url
+    )
+
+
+def _reset_public_schema(engine: Engine) -> None:
+    """Drop and recreate the `public` schema — a true clean slate that also
+    removes alembic_version, so a following `alembic upgrade` starts fresh."""
+    with engine.begin() as conn:
+        conn.execute(text("DROP SCHEMA IF EXISTS public CASCADE"))
+        conn.execute(text("CREATE SCHEMA public"))
+
+
+def _alembic_upgrade_head(url: str) -> None:
+    """Run `alembic upgrade head` against ``url`` programmatically.
+
+    Sets ALEMBIC_SKIP_LOGGING_CONFIG so migrations/env.py does not run
+    fileConfig (which would evict pytest's caplog handler from the root
+    logger); restored afterwards so nothing leaks between tests.
+    """
+    from alembic import command
+    from alembic.config import Config
+
+    cfg = Config(str(_REPO_ROOT / "alembic.ini"))
+    cfg.set_main_option("script_location", str(_REPO_ROOT / "migrations"))
+    cfg.set_main_option("sqlalchemy.url", url)  # honored by migrations/env.py
+
+    prev = os.environ.get("ALEMBIC_SKIP_LOGGING_CONFIG")
+    os.environ["ALEMBIC_SKIP_LOGGING_CONFIG"] = "1"
+    try:
+        command.upgrade(cfg, "head")
+    finally:
+        if prev is None:
+            os.environ.pop("ALEMBIC_SKIP_LOGGING_CONFIG", None)
+        else:
+            os.environ["ALEMBIC_SKIP_LOGGING_CONFIG"] = prev
+
+
+def _use_migrations() -> bool:
+    """When set, DB fixtures build the schema via migrations, not create_all."""
+    return os.environ.get("TEST_USE_MIGRATIONS") == "1"
 
 
 @pytest.fixture
@@ -50,14 +100,11 @@ def db_engine() -> Iterator[Engine]:
     """A SQLAlchemy engine against a real Postgres test database.
 
     Uses TEST_DATABASE_URL (or DATABASE_URL) — CI provides a Postgres
-    service. Skips cleanly when no database is reachable so contributors
-    without a local Postgres aren't blocked.
+    service. By default the schema is built with ``create_all`` (fast); when
+    ``TEST_USE_MIGRATIONS=1`` it is built by running the Alembic migrations,
+    so the whole suite can be exercised against the migrated schema in CI.
     """
-    url = (
-        os.environ.get("TEST_DATABASE_URL")
-        or os.environ.get("DATABASE_URL")
-        or Settings().database_url
-    )
+    url = _test_db_url()
     engine = create_engine(url)
     try:
         engine.connect().close()
@@ -65,11 +112,36 @@ def db_engine() -> Iterator[Engine]:
         engine.dispose()
         pytest.skip("no Postgres available for DB tests")
 
-    Base.metadata.create_all(engine)
+    if _use_migrations():
+        _reset_public_schema(engine)  # clean slate incl. alembic_version
+        _alembic_upgrade_head(url)
+    else:
+        Base.metadata.create_all(engine)
     try:
         yield engine
     finally:
-        Base.metadata.drop_all(engine)
+        if _use_migrations():
+            _reset_public_schema(engine)
+        else:
+            Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+@pytest.fixture
+def raw_pg_engine() -> Iterator[Engine]:
+    """A bare Postgres engine with NO schema set up — the test manages the
+    schema itself (used by the migration tests). Leaves a clean schema behind.
+    """
+    engine = create_engine(_test_db_url())
+    try:
+        engine.connect().close()
+    except OperationalError:
+        engine.dispose()
+        pytest.skip("no Postgres available for migration tests")
+    try:
+        yield engine
+    finally:
+        _reset_public_schema(engine)
         engine.dispose()
 
 

@@ -6,6 +6,7 @@ metadata so `alembic revision --autogenerate` works in later weeks.
 
 from __future__ import annotations
 
+import os
 from logging.config import fileConfig
 
 from alembic import context
@@ -19,11 +20,18 @@ from trust_api.db.session import Base
 
 config = context.config
 
-if config.config_file_name is not None:
+# Configure logging from alembic.ini, EXCEPT when invoked programmatically
+# (e.g. from the test suite) — fileConfig would replace the root logger's
+# handlers and evict pytest's caplog handler. The CLI path is unaffected.
+if config.config_file_name is not None and not os.environ.get("ALEMBIC_SKIP_LOGGING_CONFIG"):
     fileConfig(config.config_file_name)
 
-# Inject the runtime database URL from settings.
-config.set_main_option("sqlalchemy.url", get_settings().database_url)
+# Use an explicitly-provided URL if one is set on the config (e.g. tests
+# injecting a target DB); otherwise fall back to the application settings.
+config.set_main_option(
+    "sqlalchemy.url",
+    config.get_main_option("sqlalchemy.url") or get_settings().database_url,
+)
 
 target_metadata = Base.metadata
 
