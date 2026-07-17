@@ -36,6 +36,14 @@ dev = [
     "ruff>=0.4",
     "black>=24.4",
 ]
+# Internal monitoring dashboard (separate Streamlit process; see docs/dashboard.md).
+# Kept out of the core deps + dev/CI install so the API/worker images and the
+# test env stay lean — the tested data layer (trust_api.dashboard) never imports
+# streamlit/pandas.
+dashboard = [
+    "streamlit>=1.30",
+    "pandas>=2.0",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

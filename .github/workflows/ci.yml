@@ -52,10 +52,10 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Ruff check
-        run: ruff check src tests scripts migrations
+        run: ruff check src tests scripts migrations dashboard
 
       - name: Black check
-        run: black --check src tests scripts migrations
+        run: black --check src tests scripts migrations dashboard
 
       - name: Pytest with coverage
         run: pytest --cov=trust_api --cov-report=term-missing --cov-fail-under=100

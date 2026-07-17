@@ -1,0 +1,21 @@
+# Internal monitoring dashboard image (Week 8) — separate from the API image
+# so the API/worker stay lean and the dashboard's heavier deps (streamlit,
+# pandas) live only here.
+FROM python:3.11-slim AS base
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+COPY pyproject.toml README.md ./
+COPY src ./src
+RUN pip install --upgrade pip && pip install ".[dashboard]"
+
+COPY dashboard ./dashboard
+
+EXPOSE 8501
+
+CMD ["streamlit", "run", "dashboard/streamlit_app.py", \
+     "--server.port=8501", "--server.address=0.0.0.0"]

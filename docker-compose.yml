@@ -68,5 +68,30 @@ services:
       sh -c "alembic upgrade head &&
              python -m trust_api.worker"
 
+  # Internal monitoring dashboard (Week 8). Separate Streamlit process reading
+  # the same Postgres + Redis; not coupled to the FastAPI app. Access requires
+  # a dashboard admin key or a valid API key (see docs/dashboard.md).
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://trust:trust@postgres:5432/trust
+      REDIS_URL: redis://redis:6379/0
+      API_KEYS: ${API_KEYS:-dev-key}
+      DASHBOARD_API_KEYS: ${DASHBOARD_API_KEYS:-}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "8501:8501"
+    command: >-
+      streamlit run dashboard/streamlit_app.py
+      --server.port=8501 --server.address=0.0.0.0
+
 volumes:
   pgdata:

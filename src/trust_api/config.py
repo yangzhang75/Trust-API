@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     # --- Auth ---
     # Comma-separated allowlist of accepted API keys, e.g. "key1,key2".
     api_keys: str = Field(default="")
+    # Comma-separated admin keys for the internal dashboard (Week 8). A
+    # dashboard key OR any api_keys entry grants dashboard access.
+    dashboard_api_keys: str = Field(default="")
 
     # --- Rate limiting ---
     rate_limit_per_minute: int = Field(default=60, ge=1)
@@ -74,6 +77,11 @@ class Settings(BaseSettings):
     def api_key_set(self) -> set[str]:
         """Parsed set of accepted API keys (empty if none configured)."""
         return {k.strip() for k in self.api_keys.split(",") if k.strip()}
+
+    @property
+    def dashboard_key_set(self) -> set[str]:
+        """Parsed set of dashboard admin keys (empty if none configured)."""
+        return {k.strip() for k in self.dashboard_api_keys.split(",") if k.strip()}
 
     @property
     def is_production(self) -> bool:
