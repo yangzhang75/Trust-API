@@ -164,8 +164,53 @@ def inspector_panel(session) -> None:
     _render_wallet_detail(info)
 
 
+def usage_panel(session) -> None:
+    st.header("API usage")
+    if not data.usage_events_present(session):
+        st.warning(
+            "No `usage_events` recorded. The API authenticates against the "
+            "configured key list and does not write usage rows yet, so this "
+            "panel is empty by design (not an outage). See docs/dashboard.md."
+        )
+        return
+    day = data.since_from_hours(24)
+    week = data.since_from_hours(24 * 7)
+    left, right = st.columns(2)
+    with left:
+        st.subheader("Calls per API key (24h)")
+        st.dataframe(
+            pd.DataFrame(data.usage_by_api_key(session, since=day)), use_container_width=True
+        )
+    with right:
+        st.subheader("Calls per API key (7d)")
+        st.dataframe(
+            pd.DataFrame(data.usage_by_api_key(session, since=week)), use_container_width=True
+        )
+    c = st.columns(2)
+    c[0].metric("Rate-limit hits (24h)", data.rate_limit_hits(session, since=day))
+    with c[1]:
+        st.subheader("Failed requests by status (24h)")
+        errors = data.errors_by_status(session, since=day)
+        st.dataframe(pd.Series(errors, name="count")) if errors else st.caption("None.")
+
+
+def health_panel(session, settings) -> None:
+    st.header("System health")
+    c = st.columns(2)
+    c[0].metric("Postgres", "✅ up" if data.db_healthy(session) else "❌ down")
+    c[1].metric("Redis", "✅ up" if data.redis_healthy(settings.redis_url) else "❌ down")
+
+    st.subheader("Scoring metrics (shared Redis — same source as GET /metrics)")
+    st.dataframe(pd.Series(data.metrics_snapshot(), name="value"), use_container_width=True)
+    st.caption(
+        "Recent structured error logs are not surfaced here — logs stream to "
+        "each container's stdout/stderr (no log store). Deferred; see docs/dashboard.md."
+    )
+
+
 def main() -> None:
     _require_key()
+    settings = get_settings()
     st.title("Trust API — Internal Dashboard")
     _range_label, hours = _time_range()
     since = data.since_from_hours(hours)
@@ -177,6 +222,10 @@ def main() -> None:
         risk_panel(session, since)
         st.divider()
         inspector_panel(session)
+        st.divider()
+        usage_panel(session)
+        st.divider()
+        health_panel(session, settings)
 
 
 main()
