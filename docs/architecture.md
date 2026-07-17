@@ -81,6 +81,15 @@ append-only `trust_score_history` (per `scorer_version`), structured JSON
 logs, and counters at `/metrics`. Run via `python -m trust_api.jobs.score`
 or the background worker. See [`pipeline.md`](pipeline.md).
 
+**Monitoring dashboard (Week 8):** a **separate Streamlit service**
+(`dashboard/streamlit_app.py`) — NOT part of the FastAPI app — reads the same
+Postgres + Redis to show system health, throughput, score distributions, risk
+flags, per-key usage, and a wallet inspector. Its tested data layer lives in
+`trust_api/dashboard/` (no streamlit import); the UI is a thin render on top.
+Access reuses the API-key mechanism (a `DASHBOARD_API_KEYS` admin tier or any
+`API_KEYS` entry). Runs as its own `dashboard` compose service on `:8501` from
+`Dockerfile.dashboard`. See [`dashboard.md`](dashboard.md).
+
 ### Cross-cutting concerns
 
 - **Auth** — `X-API-Key` validated against a configured allowlist
@@ -96,7 +105,10 @@ or the background worker. See [`pipeline.md`](pipeline.md).
   `wallet_features`, `trust_scores`, `proofs`, `api_keys`, `usage_events`.
   Feature and proof payloads are `jsonb` and never contain raw tx data;
   `api_keys` stores `key_hash`, never plaintext.
-- **Redis 7** backs rate limiting now and ingestion/scoring caches later.
+- **Redis 7** backs rate limiting, the ingestion cache, and the shared
+  cross-process scoring metrics (Week 6 H1 fix).
+- The **monitoring dashboard** (Week 8) is a read-only consumer of these
+  tables + the Redis metrics; it never writes.
 
 ## Request flow for `POST /verify`
 

@@ -24,10 +24,27 @@ GitHub Actions.
 docker compose up --build
 ```
 
-This starts **api + postgres + redis**, applies migrations, and serves the
-API on `http://localhost:8000`. The default dev API key is `dev-key`
-(override via the `API_KEYS` env var — never use the default outside local
-dev).
+This starts **api + postgres + redis + worker + dashboard**, applies
+migrations, and serves the API on `http://localhost:8000`. The default dev API
+key is `dev-key` (override via the `API_KEYS` env var — never use the default
+outside local dev).
+
+### Internal monitoring dashboard (Week 8)
+
+A separate Streamlit service (not part of the API) for internal monitoring —
+system health, throughput, score distributions, risk flags, per-key usage, and
+a wallet inspector ("why did this wallet get this score?").
+
+```bash
+DASHBOARD_API_KEYS=some-admin-key docker compose up dashboard
+# open http://localhost:8501 and enter the key
+```
+
+**Auth:** the dashboard uses the same key mechanism as the API — a key in
+`DASHBOARD_API_KEYS` (admin tier) **or** any `API_KEYS` entry grants access;
+with no keys configured it is closed. This is an app-level gate (Streamlit has
+no built-in auth) — see [`docs/dashboard.md`](docs/dashboard.md) for what each
+panel shows, data sources, and the auth limits.
 
 Verify it's up:
 
@@ -93,7 +110,7 @@ make run                     # uvicorn with autoreload on :8000
 ```bash
 make install   # install package + dev deps
 make run       # run the API locally (autoreload)
-make up        # docker compose up --build (api + postgres + redis)
+make up        # docker compose up --build (api + postgres + redis + worker + dashboard)
 make down      # stop services and remove volumes
 make test      # pytest with coverage
 make lint      # ruff check + black --check
@@ -120,6 +137,7 @@ All settings are read from the environment (see [`.env.example`](.env.example)):
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `API_KEYS` | _(empty)_ | Comma-separated allowlist of accepted API keys |
+| `DASHBOARD_API_KEYS` | _(empty)_ | Admin keys for the monitoring dashboard (Week 8); a dashboard key or any `API_KEYS` entry grants access |
 | `RATE_LIMIT_PER_MINUTE` | `60` | Per-key fixed-window rate limit (Redis) |
 | `DATABASE_URL` | `postgresql+psycopg://trust:trust@localhost:5432/trust` | Postgres DSN |
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis URL |
@@ -215,13 +233,15 @@ src/trust_api/
     features/        # SQL-aggregated behavioral features (real, Week 3)
     scoring/         # transparent rule engine + config (real, Week 4)
     proof/           # Ed25519 signing, canonical form, verify (real, Week 6)
+    dashboard/       # tested data layer for the monitoring dashboard (Week 8)
   db/                # session.py, models.py
-  core/              # logging.py
+  core/              # logging.py, metrics.py, validation.py
+dashboard/           # streamlit_app.py — dashboard UI (separate process, Week 8)
 data/                # labeled_wallets.json (verified labeled dataset)
 scripts/             # seed_wallets.py, export_openapi.py
-tests/               # health, verify, ingestion, ETL, features, scoring, eval
+tests/               # health, verify, ingestion, ETL, features, scoring, eval, dashboard
 migrations/          # Alembic (0001 schema, 0002 txs, 0003 feature cols)
-docs/                # architecture, ingestion, features, scoring, scoring-eval, ...
+docs/                # architecture, ingestion, features, scoring, dashboard, ...
 ```
 
 ## Trust scoring (Week 4)
