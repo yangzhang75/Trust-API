@@ -14,7 +14,6 @@ from sqlalchemy.orm import Session
 
 from trust_api.dashboard import data
 from trust_api.db.models import (
-    ApiKey,
     Proof,
     TrustScoreHistory,
     UsageEvent,
@@ -58,9 +57,13 @@ def _score(
     )
 
 
-def _usage(session: Session, endpoint="/verify", status=200, *, when=NOW, api_key_id=None) -> None:
+def _usage(
+    session: Session, endpoint="/verify", status=200, *, when=NOW, api_key_hash=None
+) -> None:
     session.add(
-        UsageEvent(endpoint=endpoint, status_code=status, created_at=when, api_key_id=api_key_id)
+        UsageEvent(
+            endpoint=endpoint, status_code=status, created_at=when, api_key_hash=api_key_hash
+        )
     )
 
 
@@ -281,19 +284,16 @@ def test_usage_events_present(db_session: Session) -> None:
 
 
 def test_usage_by_api_key(db_session: Session) -> None:
-    assert data.usage_by_api_key(db_session) == []  # empty (known limit)
-    key = ApiKey(key_hash="h", label="partner-a")
-    db_session.add(key)
-    db_session.flush()
-    _usage(db_session, api_key_id=key.id)
-    _usage(db_session, api_key_id=key.id)
-    _usage(db_session, api_key_id=None)  # anonymous / no key row -> label None
+    assert data.usage_by_api_key(db_session) == []  # no usage yet
+    _usage(db_session, api_key_hash="abc123")
+    _usage(db_session, api_key_hash="abc123")
+    _usage(db_session, api_key_hash=None)  # unauthenticated / invalid key
     db_session.commit()
 
     rows = data.usage_by_api_key(db_session, since=data.since_from_hours(24, now=NOW))
-    by_label = {r["label"]: r["calls"] for r in rows}
-    assert by_label["partner-a"] == 2
-    assert by_label[None] == 1
+    by_hash = {r["api_key_hash"]: r["calls"] for r in rows}
+    assert by_hash["abc123"] == 2
+    assert by_hash[None] == 1
 
 
 def test_rate_limit_hits_and_errors_by_status(db_session: Session) -> None:

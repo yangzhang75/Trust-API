@@ -9,10 +9,13 @@ and an optional ``now`` for deterministic tests. Scores are read as the
 *latest* row per wallet (trust_score_history is append-only per
 (wallet, scorer_version)).
 
-Known data-source limits (surfaced, not hidden): the API does not currently
-write ``usage_events`` or ``api_keys`` rows, so the usage functions return
-empty results today. ``usage_events_present`` lets the UI show a clear
-caveat instead of implying zero traffic.
+Known data-source limits (surfaced, not hidden): ``usage_events`` is now
+written per request (Week 8 usage-logging middleware), so the usage
+functions return real data. The ``api_keys`` table is still unpopulated —
+auth uses the env allowlist — so per-key breakdowns are keyed by the
+privacy-preserving ``api_key_hash`` the middleware records, not by an
+api_keys row. ``usage_events_present`` still lets the UI caveat an
+empty-so-far window.
 """
 
 from __future__ import annotations
@@ -27,7 +30,6 @@ from sqlalchemy.orm import Session
 
 from trust_api.core.metrics import METRICS
 from trust_api.db.models import (
-    ApiKey,
     Proof,
     TrustScoreHistory,
     UsageEvent,
@@ -304,22 +306,20 @@ def usage_events_present(session: Session) -> bool:
 
 
 def usage_by_api_key(session: Session, *, since: datetime | None = None) -> list[dict]:
-    """Call counts per API key (label from api_keys), most-active first."""
+    """Call counts per (hashed) API key, most-active first.
+
+    Keys are the privacy-preserving sha256[:16] hash the middleware records;
+    NULL means an unauthenticated/invalid request.
+    """
     stmt = (
-        select(
-            UsageEvent.api_key_id,
-            ApiKey.label,
-            func.count(UsageEvent.id).label("calls"),
-        )
-        .join(ApiKey, ApiKey.id == UsageEvent.api_key_id, isouter=True)
-        .group_by(UsageEvent.api_key_id, ApiKey.label)
+        select(UsageEvent.api_key_hash, func.count(UsageEvent.id).label("calls"))
+        .group_by(UsageEvent.api_key_hash)
         .order_by(func.count(UsageEvent.id).desc())
     )
     if since is not None:
         stmt = stmt.where(UsageEvent.created_at >= since)
     return [
-        {"api_key_id": r.api_key_id, "label": r.label, "calls": int(r.calls)}
-        for r in session.execute(stmt).all()
+        {"api_key_hash": r.api_key_hash, "calls": int(r.calls)} for r in session.execute(stmt).all()
     ]
 
 

@@ -74,8 +74,8 @@ def overview_panel(session) -> None:
 
     if not data.usage_events_present(session):
         st.info(
-            "⚠️ /verify call counts and success ratio read from `usage_events`, "
-            "which the API does not populate yet — showing 0. See docs/dashboard.md."
+            "No requests recorded in `usage_events` yet — /verify counts and "
+            "success ratio show 0 until the API serves traffic. See docs/dashboard.md."
         )
 
 
@@ -168,9 +168,9 @@ def usage_panel(session) -> None:
     st.header("API usage")
     if not data.usage_events_present(session):
         st.warning(
-            "No `usage_events` recorded. The API authenticates against the "
-            "configured key list and does not write usage rows yet, so this "
-            "panel is empty by design (not an outage). See docs/dashboard.md."
+            "No requests recorded yet — the API logs a `usage_events` row per "
+            "request, so this panel populates once it serves traffic. Per-key "
+            "rows are keyed by a hashed API key (api_keys table still empty)."
         )
         return
     day = data.since_from_hours(24)

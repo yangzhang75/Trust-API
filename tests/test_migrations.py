@@ -14,7 +14,7 @@ from tests.conftest import _alembic_upgrade_head, _reset_public_schema, _test_db
 from trust_api.db.session import Base
 
 # Current head revision — bump when a new migration is added.
-HEAD_REVISION = "0006_proof_signing_columns"
+HEAD_REVISION = "0007_usage_event_columns"
 
 EXPECTED_TABLES = {
     "wallets",

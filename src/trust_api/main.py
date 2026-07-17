@@ -9,9 +9,11 @@ from __future__ import annotations
 
 from fastapi import FastAPI, Response
 
+from trust_api.api.usage import install_usage_logging
 from trust_api.config import Settings, get_settings
 from trust_api.core.logging import configure_logging, get_logger
 from trust_api.core.metrics import render_prometheus
+from trust_api.db.session import get_sessionmaker
 from trust_api.services.proof import load_signer
 
 
@@ -36,6 +38,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
     # One signing key per process (stable key_id; ephemeral dev key warns).
     app.state.signer = load_signer(settings)
+    # Session factory for the usage-logging middleware (tests can override).
+    app.state.session_factory = get_sessionmaker()
+    install_usage_logging(app)
 
     @app.get("/health", tags=["meta"], summary="Liveness probe")
     def health() -> dict[str, str]:

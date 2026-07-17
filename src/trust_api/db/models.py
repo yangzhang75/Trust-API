@@ -227,3 +227,9 @@ class UsageEvent(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+    # Week 8 usage logging (api_key_id/wallet_id stay unused until the
+    # api_keys table is populated). api_key_hash is sha256(key)[:16] of a
+    # *valid* allowlist key, or NULL for unauthenticated/invalid requests.
+    method: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    api_key_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    response_duration_ms: Mapped[float | None] = mapped_column(Float, nullable=True)

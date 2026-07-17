@@ -90,17 +90,23 @@ real auth proxy (e.g. an SSO/oauth2 sidecar) or restrict port 8501 to a VPN.
 | **Score distribution** | tier / human-likelihood / confidence-bucket distributions over the latest score per wallet, time-filterable (24h/7d/30d/all) | `trust_score_history` |
 | **Risk flags** | most-frequent flags; recent flagged wallets (expandable to features + history + proofs) | `trust_score_history`, `wallet_features`, `proofs` |
 | **Wallet inspector** | paste an address → features, all historical scores (versions + timestamps), proof metadata | `wallets`, `wallet_features`, `wallet_transactions`, `trust_score_history`, `proofs` |
-| **API usage** | per-key call counts (24h/7d), 429 hits, failed requests by status | `usage_events`†, `api_keys`† |
+| **API usage** | per-(hashed)-key call counts (24h/7d), 429 hits, failed requests by status | `usage_events` |
 | **System health** | Postgres/Redis up-down, shared scoring metrics snapshot | Redis metrics (H1), live DB/Redis probes |
 
-† **Known data-source limit (surfaced, not faked):** the API currently
-authenticates against the configured key list and does **not** write
-`usage_events` or `api_keys` rows. So the **API usage** panel and the
-Overview's `/verify` counts / success ratio are **empty today** — the panels
-render with an explicit "empty by design, not an outage" caveat rather than
-showing fabricated numbers. When request-logging is added (writing a
-`usage_events` row per request), these panels light up with no dashboard
-change.
+**Usage logging (Week 8):** the API logs one `usage_events` row per request
+via a background middleware (`trust_api/api/usage.py`) — endpoint, method,
+status, `response_duration_ms`, and a privacy-preserving `api_key_hash`
+(`sha256(key)[:16]` of a *valid* allowlist key, NULL for
+unauthenticated/invalid requests). The write is best-effort: a DB outage logs
+a warning and never fails or slows the request. So the **API usage** panel and
+the Overview's `/verify` counts are now **real** (empty only until the API
+serves traffic).
+
+† **Remaining known limit (surfaced, not faked):** the `api_keys` table is
+still **empty** — auth uses the env allowlist and the api_keys
+table/migration is intentionally deferred. So per-key rows are grouped by the
+hashed key, not by a human-readable `api_keys.label`. There is no per-key
+friendly name until api_keys is populated.
 
 **Deferred:** recent structured error logs are not surfaced. Logs stream to
 each container's stdout/stderr and there is no log store to query; the health
