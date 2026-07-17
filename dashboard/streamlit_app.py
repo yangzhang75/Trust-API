@@ -94,6 +94,76 @@ def distribution_panel(session, since) -> None:
         st.bar_chart(pd.Series(data.confidence_histogram(session, since=since), name="wallets"))
 
 
+def _render_wallet_detail(info: dict) -> None:
+    """Shared wallet drill-down: identity, features, score history, proofs."""
+    c = st.columns(4)
+    c[0].metric("Stored transactions", info["stored_tx_count"])
+    c[1].metric("Wallet tx_count", info["wallet_tx_count"])
+    c[2].metric(
+        "First seen", info["first_seen"].strftime("%Y-%m-%d") if info["first_seen"] else "—"
+    )
+    c[3].metric("Last seen", info["last_seen"].strftime("%Y-%m-%d") if info["last_seen"] else "—")
+
+    st.markdown("**Features**")
+    if info["features"]:
+        st.dataframe(pd.DataFrame([info["features"]]).T.rename(columns={0: "value"}))
+    else:
+        st.caption("No features computed for this wallet yet.")
+
+    st.markdown("**Score history** (newest first, all scorer versions)")
+    if info["score_history"]:
+        st.dataframe(pd.DataFrame(info["score_history"]), use_container_width=True)
+    else:
+        st.caption("No scores recorded.")
+
+    st.markdown("**Proofs** (metadata only — no raw transaction data)")
+    if info["proofs"]:
+        st.dataframe(pd.DataFrame(info["proofs"]), use_container_width=True)
+    else:
+        st.caption("No proofs issued.")
+
+
+def risk_panel(session, since) -> None:
+    st.header("Risk flags")
+    freq = data.risk_flag_frequency(session, since=since)
+    left, right = st.columns([1, 2])
+    with left:
+        st.subheader("Most frequent flags")
+        if freq:
+            st.bar_chart(pd.Series(freq, name="wallets"))
+        else:
+            st.caption("No flags in this time range.")
+    with right:
+        st.subheader("Recent flagged wallets")
+        flagged = data.recent_flagged_wallets(session, since=since, limit=25)
+        if flagged:
+            st.dataframe(pd.DataFrame(flagged), use_container_width=True)
+            st.caption(f"Showing the {len(flagged)} most recent flagged wallets (max 25).")
+            for w in flagged:
+                with st.expander(
+                    f"{w['address']} — {w['trust_tier']} — {', '.join(w['risk_flags'])}"
+                ):
+                    info = data.inspect_wallet(session, w["address"])
+                    if info:
+                        _render_wallet_detail(info)
+        else:
+            st.caption("No flagged wallets in this time range.")
+
+
+def inspector_panel(session) -> None:
+    st.header("Wallet inspector")
+    st.caption("Paste a wallet address to see why it got its score.")
+    address = st.text_input("Wallet address").strip()
+    if not address:
+        return
+    info = data.inspect_wallet(session, address)
+    if info is None:
+        st.warning("This wallet is not known to the system (never ingested or scored).")
+        return
+    st.success(f"Found {info['address']}")
+    _render_wallet_detail(info)
+
+
 def main() -> None:
     _require_key()
     st.title("Trust API — Internal Dashboard")
@@ -103,6 +173,10 @@ def main() -> None:
         overview_panel(session)
         st.divider()
         distribution_panel(session, since)
+        st.divider()
+        risk_panel(session, since)
+        st.divider()
+        inspector_panel(session)
 
 
 main()
