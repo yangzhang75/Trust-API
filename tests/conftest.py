@@ -26,6 +26,18 @@ TEST_API_KEY = "test-key"
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
+@pytest.fixture(autouse=True)
+def _isolate_provider_key(monkeypatch):
+    """Keep tests deterministic regardless of a developer's local .env.
+
+    pydantic-settings loads .env, so a real ETHERSCAN_API_KEY there would make
+    Settings() report a configured provider — triggering live ingestion and
+    changing behavior/coverage. Force it empty (env vars beat .env); tests that
+    want a provider still pass ``etherscan_api_key=...`` explicitly, which wins.
+    """
+    monkeypatch.setenv("ETHERSCAN_API_KEY", "")
+
+
 def _test_db_url() -> str:
     """Resolve the test Postgres URL (CI/local override → app default)."""
     return (

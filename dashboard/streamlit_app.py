@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 
+import altair as alt
 import pandas as pd
 import streamlit as st
 
@@ -18,6 +19,31 @@ from trust_api.dashboard.auth import verify_dashboard_key
 from trust_api.db.session import get_sessionmaker
 
 st.set_page_config(page_title="Trust API — Internal Dashboard", layout="wide")
+# Give the page top padding so the title isn't clipped by the top edge.
+st.markdown("<style>.block-container{padding-top:2.5rem;}</style>", unsafe_allow_html=True)
+
+
+def _bar_chart(counts: dict, x_label: str) -> alt.Chart:
+    """A count bar chart with a Y-axis fixed to [0, max] and explicit integer
+    ticks (never negative, no fractional/duplicate labels), and horizontal,
+    untruncated X labels."""
+    order = [str(k) for k in counts]
+    values = list(counts.values())
+    top = max([*values, 1])  # avoid a degenerate [0, 0] domain
+    df = pd.DataFrame({x_label: order, "count": values})
+    return (
+        alt.Chart(df)
+        .mark_bar()
+        .encode(
+            x=alt.X(f"{x_label}:N", sort=order, axis=alt.Axis(labelAngle=0, labelLimit=1000)),
+            y=alt.Y(
+                "count:Q",
+                scale=alt.Scale(domain=[0, top]),
+                axis=alt.Axis(values=list(range(top + 1)), format="d"),
+            ),
+        )
+        .properties(height=260)
+    )
 
 
 @contextmanager
@@ -102,13 +128,19 @@ def distribution_panel(session, since) -> None:
     left, mid, right = st.columns(3)
     with left:
         st.subheader("Trust tier")
-        st.bar_chart(pd.Series(tiers, name="wallets"))
+        st.altair_chart(_bar_chart(tiers, "tier"), use_container_width=True)
     with mid:
         st.subheader("Human likelihood")
-        st.bar_chart(pd.Series(data.likelihood_distribution(session, since=since), name="wallets"))
+        st.altair_chart(
+            _bar_chart(data.likelihood_distribution(session, since=since), "likelihood"),
+            use_container_width=True,
+        )
     with right:
         st.subheader("Confidence")
-        st.bar_chart(pd.Series(data.confidence_histogram(session, since=since), name="wallets"))
+        st.altair_chart(
+            _bar_chart(data.confidence_histogram(session, since=since), "bucket"),
+            use_container_width=True,
+        )
 
 
 def _render_wallet_detail(info: dict) -> None:
@@ -147,7 +179,7 @@ def risk_panel(session, since) -> None:
     with left:
         st.subheader("Most frequent flags")
         if freq:
-            st.bar_chart(pd.Series(freq, name="wallets"))
+            st.altair_chart(_bar_chart(freq, "flag"), use_container_width=True)
         else:
             st.caption("No flags in this time range.")
     with right:

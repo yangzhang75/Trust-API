@@ -9,6 +9,7 @@ assessment together with a real Ed25519-signed, expiring proof.
 from __future__ import annotations
 
 import asyncio
+from time import perf_counter
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -19,9 +20,10 @@ from sqlalchemy.orm import Session
 from trust_api.api.deps import get_settings, get_signer, rate_limit
 from trust_api.config import Settings
 from trust_api.core.logging import get_logger
+from trust_api.core.metrics import METRICS
 from trust_api.db.models import Wallet, WalletFeature
 from trust_api.db.session import get_db
-from trust_api.pipeline import record_score
+from trust_api.pipeline import INGEST_CHAINS, record_score
 from trust_api.schemas.verify import (
     ErrorResponse,
     Proof,
@@ -64,9 +66,13 @@ def _resolve_features(
             return row
         if not settings.ingestion_provider_configured:
             return None
-        # Miss + provider available: ingest on demand, compute, re-read.
-        result = asyncio.run(ingest_wallet(db, wallet, settings=settings))
-        compute_features(db, result.wallet_id)
+        # Miss + provider available: ingest on demand (both chains, like the
+        # pipeline), compute features, re-read. This is why a first /verify of
+        # a real wallet (e.g. vitalik) scores on real activity, not empties.
+        wallet_id = 0
+        for chain in INGEST_CHAINS:
+            wallet_id = asyncio.run(ingest_wallet(db, wallet, chain, settings=settings)).wallet_id
+        compute_features(db, wallet_id)
         return _query_features(db, wallet)
     except (SQLAlchemyError, IngestionError):
         return None
@@ -112,8 +118,14 @@ def verify(
             detail="Invalid wallet address; expected an EVM address (^0x[a-fA-F0-9]{40}$).",
         )
 
+    started = perf_counter()
     features = _resolve_features(db, body.wallet, settings) or EMPTY_FEATURES
     result = score(features)
+    # Bump the SAME shared-Redis counters the pipeline uses, so System health's
+    # scoring metrics (and avg duration) reflect /verify traffic too — not just
+    # the worker. Best-effort inside METRICS (Redis outage is swallowed).
+    METRICS.record(ok=True, duration_seconds=perf_counter() - started)
+
     signed = ProofService(signer, settings.proof_ttl_hours).generate(
         wallet=body.wallet,
         result=result,

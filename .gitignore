@@ -33,3 +33,6 @@ coverage.xml
 
 # Local-only, machine-specific compose overrides (e.g. host port remaps)
 docker-compose.override.yml
+
+# Local dashboard screenshot artifacts
+dashboard_shots/

@@ -93,13 +93,25 @@ real auth proxy (e.g. an SSO/oauth2 sidecar) or restrict port 8501 to a VPN.
 | **API usage** | one table of per-(hashed)-key calls for 24h and 7d side by side (24h ≤ 7d by construction), 429 hits, failed requests by status | `usage_events` |
 | **System health** | Postgres/Redis up-down, shared scoring metrics snapshot | Redis metrics (H1), live DB/Redis probes |
 
-**"Wallets scored" vs "/verify calls" (Overview):** these are *different*
-metrics, labelled with help tooltips. `/verify` now appends to
-`trust_score_history` (best-effort — a DB failure is logged, never fails the
-request), so **wallets scored** = distinct wallets with a persisted score
-(one per `/verify`), while **/verify calls** counts every logged request
-including 401/400. Repeat calls and rejected requests don't add distinct
-scored wallets, so the two legitimately differ.
+**How `/verify` feeds the dashboard.** A `/verify` request now, best-effort
+(a DB/Redis failure is logged, never fails or blocks the request):
+
+- **Ingests on a feature miss** — if the wallet has no stored features and a
+  provider is configured, it ingests Ethereum + Arbitrum on demand, computes
+  features, then scores. So a first `/verify` of a real wallet (e.g. vitalik)
+  scores on real activity, not empty features. (Requires `ETHERSCAN_API_KEY`;
+  without it, ingestion is skipped and the wallet scores as empty.)
+- **Appends to `trust_score_history`** — so the scored-wallet count and score
+  distribution reflect real traffic.
+- **Bumps the shared-Redis scoring metrics** — the same counters the worker
+  uses, so System health's metrics and avg duration include `/verify` (they
+  are no longer stuck at 0 when only `/verify` has run).
+
+**"Wallets scored" vs "/verify calls" (Overview):** different metrics, with
+help tooltips. **Wallets scored** = distinct wallets with a persisted score;
+**/verify calls** = every logged request (incl. 401/400). They match when
+each wallet is verified once and diverge with repeats/rejections — both are
+non-zero and reconcilable.
 
 **Usage logging (Week 8):** the API logs one `usage_events` row per request
 via a background middleware (`trust_api/api/usage.py`) — endpoint, method,
