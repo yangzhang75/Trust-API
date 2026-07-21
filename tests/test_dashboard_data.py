@@ -296,6 +296,22 @@ def test_usage_by_api_key(db_session: Session) -> None:
     assert by_hash[None] == 1
 
 
+def test_usage_by_api_key_windows_is_monotonic(db_session: Session) -> None:
+    _usage(db_session, api_key_hash="k1")  # now -> 24h & 7d
+    _usage(db_session, api_key_hash="k1")
+    for _ in range(3):
+        _usage(db_session, api_key_hash="k1", when=NOW - timedelta(days=3))  # 7d only
+    _usage(db_session, api_key_hash="k2", when=NOW - timedelta(days=2))  # 7d only
+    db_session.commit()
+
+    rows = data.usage_by_api_key_windows(db_session, now=NOW)
+    assert [r["api_key_hash"] for r in rows] == ["k1", "k2"]  # ordered by 7d desc
+    by = {r["api_key_hash"]: r for r in rows}
+    assert by["k1"] == {"api_key_hash": "k1", "calls_24h": 2, "calls_7d": 5}
+    assert by["k2"] == {"api_key_hash": "k2", "calls_24h": 0, "calls_7d": 1}
+    assert all(r["calls_24h"] <= r["calls_7d"] for r in rows)  # 24h ⊆ 7d
+
+
 def test_rate_limit_hits_and_errors_by_status(db_session: Session) -> None:
     for status in (200, 400, 401, 422, 429, 429, 500):
         _usage(db_session, status=status)

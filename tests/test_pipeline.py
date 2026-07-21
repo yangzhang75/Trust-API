@@ -201,6 +201,27 @@ def test_persist_is_append_only_per_scorer_version(db_session: Session, monkeypa
     assert count == 2
 
 
+def test_record_score_creates_wallet_and_history(db_session: Session) -> None:
+    result = ScoringResult(HumanLikelihood.low, TrustTier.bronze, 0.1, [])
+    pipeline.record_score(db_session, W1, result, now=NOW)  # wallet does not exist yet
+
+    w = db_session.execute(select(Wallet).where(Wallet.address == W1)).scalar_one()
+    rows = db_session.execute(select(TrustScoreHistory)).scalars().all()
+    assert len(rows) == 1 and rows[0].wallet_id == w.id
+    assert rows[0].trust_tier == "bronze"
+
+
+def test_record_score_reuses_existing_wallet(db_session: Session) -> None:
+    wid = _wallet(db_session, W1)  # wallet already registered
+    db_session.commit()
+    result = ScoringResult(HumanLikelihood.high, TrustTier.gold, 0.9, [])
+    pipeline.record_score(db_session, W1, result, now=NOW)
+
+    assert db_session.execute(select(func.count(Wallet.id))).scalar_one() == 1  # not duplicated
+    row = db_session.execute(select(TrustScoreHistory)).scalar_one()
+    assert row.wallet_id == wid and row.trust_tier == "gold"
+
+
 def test_known_and_stale_wallet_helpers(db_session: Session) -> None:
     fresh = _wallet(db_session, W1)
     stale_wid = _wallet(db_session, W2)

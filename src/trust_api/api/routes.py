@@ -21,6 +21,7 @@ from trust_api.config import Settings
 from trust_api.core.logging import get_logger
 from trust_api.db.models import Wallet, WalletFeature
 from trust_api.db.session import get_db
+from trust_api.pipeline import record_score
 from trust_api.schemas.verify import (
     ErrorResponse,
     Proof,
@@ -71,6 +72,20 @@ def _resolve_features(
         return None
 
 
+def _record_score_history(db: Session | None, wallet: str, result) -> None:
+    """Append this /verify to trust_score_history so the dashboard's scored-
+    wallet count and score distribution reflect real traffic. Best-effort:
+    a DB failure is logged and swallowed — it must never break /verify.
+    """
+    if db is None:
+        return
+    try:
+        record_score(db, wallet, result)
+    except SQLAlchemyError:
+        db.rollback()
+        logger.warning("verify: score-history persist failed (wallet=%s)", wallet)
+
+
 @router.post(
     "/verify",
     response_model=VerifyResponse,
@@ -105,6 +120,7 @@ def verify(
         chains=[c.value for c in body.chains],
         session=db,
     )
+    _record_score_history(db, body.wallet, result)
 
     return VerifyResponse(
         wallet=body.wallet,

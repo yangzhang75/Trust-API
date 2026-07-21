@@ -323,6 +323,27 @@ def usage_by_api_key(session: Session, *, since: datetime | None = None) -> list
     ]
 
 
+def usage_by_api_key_windows(session: Session, *, now: datetime | None = None) -> list[dict]:
+    """Per-(hashed)-key counts for the 24h and 7d windows in one table.
+
+    Built from two ``usage_by_api_key`` calls over nested windows, so
+    ``calls_24h <= calls_7d`` always holds for a given key (24h ⊆ 7d) — the
+    single table makes that consistency obvious.
+    """
+    day = {
+        r["api_key_hash"]: r["calls"]
+        for r in usage_by_api_key(session, since=since_from_hours(24, now=now))
+    }
+    week = {
+        r["api_key_hash"]: r["calls"]
+        for r in usage_by_api_key(session, since=since_from_hours(24 * 7, now=now))
+    }
+    return [
+        {"api_key_hash": h, "calls_24h": day.get(h, 0), "calls_7d": week[h]}
+        for h in sorted(week, key=lambda k: (-week[k], str(k)))
+    ]
+
+
 def rate_limit_hits(session: Session, *, since: datetime | None = None) -> int:
     stmt = select(func.count(UsageEvent.id)).where(UsageEvent.status_code == 429)
     if since is not None:

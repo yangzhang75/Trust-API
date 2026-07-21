@@ -159,6 +159,19 @@ def test_verify_scores_high_for_strong_stored_features(db_session: Session) -> N
     assert body["risk_flags"] == []
 
 
+def test_verify_records_score_history(db_session: Session) -> None:
+    # /verify now appends to trust_score_history so the dashboard's scored-wallet
+    # count and score distribution reflect real traffic (best-effort).
+    from sqlalchemy import func
+
+    from trust_api.db.models import TrustScoreHistory
+
+    resp = _db_client(db_session).post("/verify", json={"wallet": VALID_WALLET}, headers=AUTH)
+    assert resp.status_code == 200
+    count = db_session.execute(select(func.count(TrustScoreHistory.id))).scalar_one()
+    assert count == 1  # one score row recorded for the verified wallet
+
+
 def test_verify_scores_low_when_no_data(db_session: Session) -> None:
     # No features row, no provider configured -> neutral features -> low trust.
     body = (

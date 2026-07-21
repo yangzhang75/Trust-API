@@ -98,6 +98,22 @@ def _persist(session: Session, wallet_id: int, result: ScoringResult, now: datet
     session.commit()
 
 
+def record_score(
+    session: Session, address: str, result: ScoringResult, *, now: datetime | None = None
+) -> None:
+    """Upsert a trust_score_history row for a scored wallet, get-or-creating
+    the wallet. Used by /verify so a verification is recorded as a scoring
+    event (same append-per-(wallet, scorer_version) semantics as the pipeline).
+    """
+    now = now or datetime.now(UTC)
+    wallet = session.execute(select(Wallet).where(Wallet.address == address)).scalar_one_or_none()
+    if wallet is None:
+        wallet = Wallet(address=address)
+        session.add(wallet)
+        session.flush()
+    _persist(session, wallet.id, result, now)
+
+
 def score_wallet(
     session: Session, address: str, settings: Settings, *, now: datetime | None = None
 ) -> WalletOutcome:

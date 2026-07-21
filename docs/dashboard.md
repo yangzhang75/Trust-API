@@ -86,12 +86,20 @@ real auth proxy (e.g. an SSO/oauth2 sidecar) or restrict port 8501 to a VPN.
 
 | Panel | Shows | Reads from |
 | --- | --- | --- |
-| **Overview** | wallets scored (all-time / 24h), /verify calls, 24h success ratio, avg scoring time, last-scoring timestamp ("is it alive?"), scorer_version | `trust_score_history`, `usage_events`†, Redis metrics (H1) |
-| **Score distribution** | tier / human-likelihood / confidence-bucket distributions over the latest score per wallet, time-filterable (24h/7d/30d/all) | `trust_score_history` |
+| **Overview** | wallets scored (all-time / 24h), /verify calls, 24h success ratio, avg scoring time, last-scoring timestamp ("is it alive?"), scorer_version | `trust_score_history`, `usage_events`, Redis metrics (H1) |
+| **Score distribution** | tier / human-likelihood / confidence-bucket distributions over the latest score per wallet, time-filterable (24h/7d/30d/all); shows a clear empty state when nothing is scored yet | `trust_score_history` |
 | **Risk flags** | most-frequent flags; recent flagged wallets (expandable to features + history + proofs) | `trust_score_history`, `wallet_features`, `proofs` |
 | **Wallet inspector** | paste an address → features, all historical scores (versions + timestamps), proof metadata | `wallets`, `wallet_features`, `wallet_transactions`, `trust_score_history`, `proofs` |
-| **API usage** | per-(hashed)-key call counts (24h/7d), 429 hits, failed requests by status | `usage_events` |
+| **API usage** | one table of per-(hashed)-key calls for 24h and 7d side by side (24h ≤ 7d by construction), 429 hits, failed requests by status | `usage_events` |
 | **System health** | Postgres/Redis up-down, shared scoring metrics snapshot | Redis metrics (H1), live DB/Redis probes |
+
+**"Wallets scored" vs "/verify calls" (Overview):** these are *different*
+metrics, labelled with help tooltips. `/verify` now appends to
+`trust_score_history` (best-effort — a DB failure is logged, never fails the
+request), so **wallets scored** = distinct wallets with a persisted score
+(one per `/verify`), while **/verify calls** counts every logged request
+including 401/400. Repeat calls and rejected requests don't add distinct
+scored wallets, so the two legitimately differ.
 
 **Usage logging (Week 8):** the API logs one `usage_events` row per request
 via a background middleware (`trust_api/api/usage.py`) — endpoint, method,

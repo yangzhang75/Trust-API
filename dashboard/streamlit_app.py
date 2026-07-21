@@ -59,10 +59,18 @@ def overview_panel(session) -> None:
     ov = data.overview(session)
 
     c = st.columns(4)
-    c[0].metric("Wallets scored (all-time)", ov["wallets_scored_all_time"])
-    c[0].metric("Wallets scored (24h)", ov["wallets_scored_24h"])
-    c[1].metric("/verify calls (all-time)", ov["verify_calls_all_time"])
-    c[1].metric("/verify calls (24h)", ov["verify_calls_24h"])
+    scored_help = (
+        "Distinct wallets with a persisted score (trust_score_history). "
+        "Every /verify records one."
+    )
+    calls_help = (
+        "All /verify requests logged in usage_events, including 401/400. Differs from "
+        "wallets scored: repeat calls and rejected requests don't add distinct scored wallets."
+    )
+    c[0].metric("Wallets scored (all-time)", ov["wallets_scored_all_time"], help=scored_help)
+    c[0].metric("Wallets scored (24h)", ov["wallets_scored_24h"], help=scored_help)
+    c[1].metric("/verify calls (all-time)", ov["verify_calls_all_time"], help=calls_help)
+    c[1].metric("/verify calls (24h)", ov["verify_calls_24h"], help=calls_help)
     sf = ov["success_failure_24h"]
     total = sf["success"] + sf["failure"]
     ratio = f"{(sf['success'] / total * 100):.0f}%" if total else "—"
@@ -81,11 +89,20 @@ def overview_panel(session) -> None:
 
 def distribution_panel(session, since) -> None:
     st.header("Score distribution")
+    tiers = data.tier_distribution(session, since=since)
+    if sum(tiers.values()) == 0:
+        st.info(
+            "📭 **No scored wallets yet in this range.** Distributions appear "
+            "once wallets are scored — every `/verify` call records a score, and "
+            "the worker scores ingested wallets. Widen the time range or send "
+            "some `/verify` traffic."
+        )
+        return
     st.caption("Latest score per wallet in the selected time range.")
     left, mid, right = st.columns(3)
     with left:
         st.subheader("Trust tier")
-        st.bar_chart(pd.Series(data.tier_distribution(session, since=since), name="wallets"))
+        st.bar_chart(pd.Series(tiers, name="wallets"))
     with mid:
         st.subheader("Human likelihood")
         st.bar_chart(pd.Series(data.likelihood_distribution(session, since=since), name="wallets"))
@@ -174,24 +191,21 @@ def usage_panel(session) -> None:
         )
         return
     day = data.since_from_hours(24)
-    week = data.since_from_hours(24 * 7)
-    left, right = st.columns(2)
-    with left:
-        st.subheader("Calls per API key (24h)")
-        st.dataframe(
-            pd.DataFrame(data.usage_by_api_key(session, since=day)), use_container_width=True
-        )
-    with right:
-        st.subheader("Calls per API key (7d)")
-        st.dataframe(
-            pd.DataFrame(data.usage_by_api_key(session, since=week)), use_container_width=True
-        )
+    st.subheader("Calls per API key — 24h vs 7d")
+    st.dataframe(pd.DataFrame(data.usage_by_api_key_windows(session)), use_container_width=True)
+    st.caption(
+        "Hashed API key (sha256[:16]); NULL = unauthenticated/invalid request. "
+        "24h ⊆ 7d, so `calls_24h ≤ calls_7d` for every key."
+    )
     c = st.columns(2)
     c[0].metric("Rate-limit hits (24h)", data.rate_limit_hits(session, since=day))
     with c[1]:
         st.subheader("Failed requests by status (24h)")
         errors = data.errors_by_status(session, since=day)
-        st.dataframe(pd.Series(errors, name="count")) if errors else st.caption("None.")
+        if errors:
+            st.dataframe(pd.Series(errors, name="count"))
+        else:
+            st.caption("None.")
 
 
 def health_panel(session, settings) -> None:
