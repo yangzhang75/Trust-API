@@ -143,6 +143,47 @@ def distribution_panel(session, since) -> None:
         )
 
 
+# Human-friendly labels for the wallet-inspector features table (raw DB column
+# -> display label). Any column not listed falls back to its raw name — still
+# shown in full (st.table never truncates), just not prettified.
+_FEATURE_LABELS: dict[str, str] = {
+    "chain": "chain",
+    "wallet_age_days": "wallet_age_days",
+    "tx_count": "tx_count",
+    "active_days": "active_days",
+    "tx_per_active_day": "tx_per_active_day",
+    "counterparty_count": "counterparty_count",
+    "counterparty_diversity_ratio": "counterparty_diversity",
+    "inbound_ratio": "inbound_ratio",
+    "burst_score": "burst_score",
+    "dormancy_flag": "dormant",
+    "recency_days": "recency_days",
+    "shared_funder_score": "shared_funder_score",
+    "counterparty_overlap_score": "counterparty_overlap_score",
+    "funding_chain_depth": "funding_chain_depth",
+    "cluster_size_estimate": "cluster_size",
+    "computed_at": "computed_at",
+}
+
+# Human-friendly labels for the System-health scoring-metrics table.
+_METRIC_LABELS: dict[str, str] = {
+    "wallets_scored_total": "Wallets scored",
+    "wallets_failed_total": "Wallets failed",
+    "scoring_duration_seconds_count": "Scoring runs",
+    "scoring_duration_seconds_avg": "Avg scoring time (s)",
+    "scoring_duration_seconds_min": "Min scoring time (s)",
+    "scoring_duration_seconds_max": "Max scoring time (s)",
+}
+
+
+def _labeled_table(values: dict, labels: dict[str, str]) -> pd.DataFrame:
+    """A (label -> value) frame for st.table, which renders full, untruncated
+    row labels. Values are stringified (None -> em dash) so mixed types render
+    cleanly. Display-only — the underlying data is unchanged."""
+    rows = {labels.get(k, k): ("—" if v is None else str(v)) for k, v in values.items()}
+    return pd.DataFrame({"Value": list(rows.values())}, index=list(rows.keys()))
+
+
 def _render_wallet_detail(info: dict) -> None:
     """Shared wallet drill-down: identity, features, score history, proofs."""
     c = st.columns(4)
@@ -155,7 +196,7 @@ def _render_wallet_detail(info: dict) -> None:
 
     st.markdown("**Features**")
     if info["features"]:
-        st.dataframe(pd.DataFrame([info["features"]]).T.rename(columns={0: "value"}))
+        st.table(_labeled_table(info["features"], _FEATURE_LABELS))
     else:
         st.caption("No features computed for this wallet yet.")
 
@@ -247,7 +288,7 @@ def health_panel(session, settings) -> None:
     c[1].metric("Redis", "✅ up" if data.redis_healthy(settings.redis_url) else "❌ down")
 
     st.subheader("Scoring metrics (shared Redis — same source as GET /metrics)")
-    st.dataframe(pd.Series(data.metrics_snapshot(), name="value"), use_container_width=True)
+    st.table(_labeled_table(data.metrics_snapshot(), _METRIC_LABELS))
     st.caption(
         "Recent structured error logs are not surfaced here — logs stream to "
         "each container's stdout/stderr (no log store). Deferred; see docs/dashboard.md."
