@@ -101,6 +101,23 @@ class ProofVerifyRequest(VerifyResponse):
     """
 
 
+class GeneratedProof(BaseModel):
+    """200 response body for POST /proof/generate.
+
+    A self-contained, shareable proof. ``payload`` is the exact canonical
+    object the signature covers (the 11 signed fields); ``signature`` is the
+    base64 Ed25519 signature; ``encoded`` is the compact base64url form of
+    ``{payload, signature}`` (URL / QR friendly); ``summary`` is a one-line
+    human-readable description for display. A verifier needs nothing else and
+    no server callback — see docs/proof-flow.md.
+    """
+
+    payload: dict
+    signature: str
+    encoded: str
+    summary: str
+
+
 class ProofVerifyResponse(BaseModel):
     """200 response body for POST /proof/verify."""
 

@@ -26,6 +26,7 @@ from trust_api.db.session import get_db
 from trust_api.pipeline import INGEST_CHAINS, record_score
 from trust_api.schemas.verify import (
     ErrorResponse,
+    GeneratedProof,
     Proof,
     ProofVerifyRequest,
     ProofVerifyResponse,
@@ -38,6 +39,7 @@ from trust_api.services.ingestion import IngestionError, ingest_wallet
 from trust_api.services.proof import ProofService, Signer
 from trust_api.services.proof.canonical import build_payload
 from trust_api.services.proof.models import Proof as ProofDTO
+from trust_api.services.proof.share import encode_proof, summarize_payload
 from trust_api.services.scoring import score
 
 router = APIRouter()
@@ -150,6 +152,54 @@ def verify(
             nonce=signed.nonce,
             scorer_version=signed.payload["scorer_version"],
         ),
+    )
+
+
+@router.post(
+    "/proof/generate",
+    response_model=GeneratedProof,
+    tags=["proof"],
+    summary="Generate a self-contained, shareable trust proof for a wallet",
+    dependencies=[Depends(rate_limit)],  # requires a valid API key, then rate-limits
+    responses={
+        400: {"model": ErrorResponse, "description": "Invalid wallet address"},
+        401: {"model": ErrorResponse, "description": "Missing or invalid API key"},
+        422: {"description": "Malformed request body"},
+        429: {"model": ErrorResponse, "description": "Rate limit exceeded"},
+    },
+)
+def generate_proof(
+    body: VerifyRequest,
+    settings: Annotated[Settings, Depends(get_settings)],
+    signer: Annotated[Signer, Depends(get_signer)],
+    db: Annotated[Session | None, Depends(get_db)] = None,
+) -> GeneratedProof:
+    """Score the wallet (same feature-resolve + rule engine as /verify) and
+    return a self-contained proof that can be shared as-is: the canonical
+    payload, its signature, a compact base64url form, and a human summary.
+
+    Reuses the Week-6 ProofService verbatim — no new crypto. Persisting the
+    proof (when a DB is available) is what makes it later revocable.
+    """
+    if not is_valid_evm_wallet(body.wallet):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid wallet address; expected an EVM address (^0x[a-fA-F0-9]{40}$).",
+        )
+
+    features = _resolve_features(db, body.wallet, settings) or EMPTY_FEATURES
+    result = score(features)
+    signed = ProofService(signer, settings.proof_ttl_hours).generate(
+        wallet=body.wallet,
+        result=result,
+        chains=[c.value for c in body.chains],
+        session=db,
+    )
+    return GeneratedProof(
+        payload=signed.payload,
+        signature=signed.signature,
+        encoded=encode_proof(signed),
+        summary=summarize_payload(signed.payload),
     )
 
 
