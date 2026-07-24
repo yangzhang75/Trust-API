@@ -34,8 +34,11 @@ For who calls this and why, see [`api-use-cases.md`](api-use-cases.md).
                                       ▼
                             ┌───────────────────┐
                             │     Trust API     │   FastAPI app
-                            │  POST /verify     │   (api/routes.py)
-                            │  GET  /health     │
+                            │  POST /verify           │   (api/routes.py)
+                            │  POST /proof/generate   │
+                            │  POST /proof/verify     │
+                            │  GET  /proof/public-key │
+                            │  GET  /health           │
                             └───────────────────┘
                                       │
                                       ▼
@@ -74,6 +77,25 @@ For who calls this and why, see [`api-use-cases.md`](api-use-cases.md).
    data is in the payload. Proofs are persisted to `proofs` (jsonb only) so
    they can be revoked before expiry (`python -m trust_api.jobs.revoke`,
    `POST /proof/verify`). See [`proof.md`](proof.md).
+
+   **Proof-verification flow (Week 9):** the proof capability is exposed as a
+   full user journey — Wallet → Generate → Share → Verify.
+   - `POST /proof/generate` returns a **self-contained** proof (`payload`,
+     `signature`, a compact `encoded` base64url form, and a human `summary`)
+     that can be shared as-is.
+   - `share.py` provides the two interchangeable wire forms (raw canonical
+     JSON and compact base64url) with a deterministic round-trip, plus
+     `decode_proof`.
+   - `offline.py` `verify_offline(public_key, proof)` is the public-key-only
+     verification path (no server, no DB); `service.py verify` now **delegates**
+     to it and only layers revocation, so the server and offline paths run the
+     same checks.
+   - `POST /proof/verify` accepts a proof in either form and returns
+     `{valid, reason, key_id, expires_at, revoked, summary}`. It keeps API-key
+     auth (abuse/DoS protection); the open, no-auth path is offline verification.
+   - `python -m trust_api.demo.proof_flow` walks the whole journey and every
+     failure mode. See [`proof-flow.md`](proof-flow.md) — the single integration
+     doc for third-party developers.
 
 **Pipeline (Week 5):** `pipeline.py` chains ingest → features → score →
 persist as one operable, scheduled stage — per-wallet failure isolation,
