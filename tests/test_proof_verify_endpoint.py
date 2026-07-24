@@ -1,4 +1,8 @@
-"""Tests for POST /proof/verify (recheck a previously issued proof)."""
+"""Tests for POST /proof/verify (verify a self-contained proof).
+
+The endpoint accepts the proof produced by /proof/generate in either wire
+form — compact ``{"encoded": ...}`` or raw ``{"payload": ..., "signature": ...}``
+— and returns {valid, reason, key_id, expires_at, revoked, summary}."""
 
 from __future__ import annotations
 
@@ -25,65 +29,108 @@ def _client(db=None) -> TestClient:
     return TestClient(app)
 
 
-def _issue(client: TestClient) -> dict:
-    """Return a full /verify response body (the round-trip payload)."""
+def _generate(client: TestClient) -> dict:
+    """Issue a fresh self-contained proof via /proof/generate."""
     return client.post(
-        "/verify", json={"wallet": VALID_WALLET, "chains": ["ethereum"]}, headers=AUTH
+        "/proof/generate", json={"wallet": VALID_WALLET, "chains": ["ethereum"]}, headers=AUTH
     ).json()
 
 
-def test_proof_verify_accepts_valid_proof() -> None:
+def test_verify_accepts_valid_proof_encoded_form() -> None:
     client = _client()
-    issued = _issue(client)
-    resp = client.post("/proof/verify", json=issued, headers=AUTH)
+    issued = _generate(client)
+    resp = client.post("/proof/verify", json={"encoded": issued["encoded"]}, headers=AUTH)
     assert resp.status_code == 200
-    assert resp.json() == {
-        "valid": True,
-        "reason": "ok",
-        "key_id": issued["proof"]["key_id"],
-    }
+    body = resp.json()
+    assert body["valid"] is True
+    assert body["reason"] == "ok"
+    assert body["key_id"] == issued["payload"]["key_id"]
+    assert body["expires_at"] == issued["payload"]["expires_at"]
+    assert body["revoked"] is False
+    assert VALID_WALLET in body["summary"]
 
 
-def test_proof_verify_rejects_tampered_field() -> None:
+def test_verify_accepts_valid_proof_raw_json_form() -> None:
     client = _client()
-    issued = _issue(client)
-    issued["trust_tier"] = "gold"  # not what was signed
-    body = client.post("/proof/verify", json=issued, headers=AUTH).json()
+    issued = _generate(client)
+    resp = client.post(
+        "/proof/verify",
+        json={"payload": issued["payload"], "signature": issued["signature"]},
+        headers=AUTH,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["valid"] is True
+    assert resp.json()["reason"] == "ok"
+
+
+def test_verify_rejects_tampered_field() -> None:
+    client = _client()
+    issued = _generate(client)
+    issued["payload"]["trust_tier"] = "gold"  # not what was signed
+    body = client.post(
+        "/proof/verify",
+        json={"payload": issued["payload"], "signature": issued["signature"]},
+        headers=AUTH,
+    ).json()
     assert body["valid"] is False
     assert body["reason"] == "bad_signature"
 
 
-def test_proof_verify_rejects_tampered_signature() -> None:
+def test_verify_rejects_tampered_signature() -> None:
     client = _client()
-    issued = _issue(client)
-    raw = bytearray(base64.b64decode(issued["proof"]["signature"]))
+    issued = _generate(client)
+    raw = bytearray(base64.b64decode(issued["signature"]))
     raw[0] ^= 0x01
-    issued["proof"]["signature"] = base64.b64encode(bytes(raw)).decode("ascii")
-    body = client.post("/proof/verify", json=issued, headers=AUTH).json()
+    issued["signature"] = base64.b64encode(bytes(raw)).decode("ascii")
+    body = client.post(
+        "/proof/verify",
+        json={"payload": issued["payload"], "signature": issued["signature"]},
+        headers=AUTH,
+    ).json()
     assert body["valid"] is False
     assert body["reason"] == "bad_signature"
 
 
-def test_proof_verify_rejects_unknown_key() -> None:
+def test_verify_rejects_unknown_key() -> None:
     client = _client()
-    issued = _issue(client)
-    issued["proof"]["key_id"] = "deadbeefdeadbeef"
-    body = client.post("/proof/verify", json=issued, headers=AUTH).json()
+    issued = _generate(client)
+    issued["payload"]["key_id"] = "deadbeefdeadbeef"
+    body = client.post(
+        "/proof/verify",
+        json={"payload": issued["payload"], "signature": issued["signature"]},
+        headers=AUTH,
+    ).json()
     assert body["valid"] is False
     assert body["reason"] == "unknown_key"
     assert body["key_id"] == "deadbeefdeadbeef"
 
 
-def test_proof_verify_reports_revoked(db_session: Session) -> None:
+def test_verify_reports_revoked(db_session: Session) -> None:
     client = _client(db_session)
-    issued = _issue(client)  # persisted via the same session
+    issued = _generate(client)  # persisted via the same session
     assert revoke_by_wallet(db_session, VALID_WALLET) == 1
-    body = client.post("/proof/verify", json=issued, headers=AUTH).json()
+    body = client.post("/proof/verify", json={"encoded": issued["encoded"]}, headers=AUTH).json()
     assert body["valid"] is False
     assert body["reason"] == "revoked"
+    assert body["revoked"] is True
 
 
-def test_proof_verify_requires_api_key() -> None:
+def test_verify_rejects_malformed_encoded() -> None:
     client = _client()
-    issued = _issue(client)
-    assert client.post("/proof/verify", json=issued).status_code == 401
+    resp = client.post("/proof/verify", json={"encoded": "!!! not base64 !!!"}, headers=AUTH)
+    assert resp.status_code == 422
+    assert "Malformed encoded proof" in resp.json()["detail"]
+
+
+def test_verify_rejects_incomplete_request() -> None:
+    client = _client()
+    # neither an encoded string nor a complete payload+signature pair
+    resp = client.post("/proof/verify", json={"payload": {"wallet": "x"}}, headers=AUTH)
+    assert resp.status_code == 422
+    assert "either 'encoded'" in resp.json()["detail"]
+
+
+def test_verify_requires_api_key() -> None:
+    client = _client()
+    issued = _generate(client)
+    assert client.post("/proof/verify", json={"encoded": issued["encoded"]}).status_code == 401

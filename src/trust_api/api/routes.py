@@ -37,9 +37,8 @@ from trust_api.schemas.verify import (
 from trust_api.services.features import EMPTY_FEATURES, WalletFeatures, compute_features
 from trust_api.services.ingestion import IngestionError, ingest_wallet
 from trust_api.services.proof import ProofService, Signer
-from trust_api.services.proof.canonical import build_payload
 from trust_api.services.proof.models import Proof as ProofDTO
-from trust_api.services.proof.share import encode_proof, summarize_payload
+from trust_api.services.proof.share import decode_proof, encode_proof, summarize_payload
 from trust_api.services.scoring import score
 
 router = APIRouter()
@@ -203,15 +202,37 @@ def generate_proof(
     )
 
 
+def _proof_from_request(body: ProofVerifyRequest) -> ProofDTO:
+    """Turn a /proof/verify request (encoded OR payload+signature) into a Proof.
+
+    Raises 422 for a request that carries neither complete form or an encoded
+    string that isn't valid base64url-of-JSON.
+    """
+    if body.encoded is not None:
+        try:
+            return decode_proof(body.encoded)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Malformed encoded proof: {exc}",
+            ) from exc
+    if body.payload is not None and body.signature is not None:
+        return ProofDTO(payload=body.payload, signature=body.signature)
+    raise HTTPException(
+        status_code=422,
+        detail="Provide either 'encoded' or both 'payload' and 'signature'.",
+    )
+
+
 @router.post(
     "/proof/verify",
     response_model=ProofVerifyResponse,
     tags=["proof"],
-    summary="Verify a previously issued proof",
+    summary="Verify a self-contained proof (raw JSON or encoded form)",
     dependencies=[Depends(rate_limit)],  # requires a valid API key, then rate-limits
     responses={
         401: {"model": ErrorResponse, "description": "Missing or invalid API key"},
-        422: {"description": "Malformed request body"},
+        422: {"description": "Malformed request body / unparseable proof"},
         429: {"model": ErrorResponse, "description": "Rate limit exceeded"},
     },
 )
@@ -221,26 +242,24 @@ def verify_proof(
     signer: Annotated[Signer, Depends(get_signer)],
     db: Annotated[Session | None, Depends(get_db)] = None,
 ) -> ProofVerifyResponse:
-    """Recheck a submitted proof: reconstruct the canonical payload, verify the
-    signature/expiry with our key, and consult the DB for revocation.
+    """Recheck a self-contained proof, submitted as raw JSON or the compact
+    encoded form: verify signature + expiry with our key and consult the DB for
+    revocation.
 
-    This is a convenience endpoint; the same check runs offline with only the
-    public key (see docs/proof.md). Revocation is only consulted when a DB is
-    available.
+    Auth: this convenience endpoint requires an API key (like the rest of the
+    API) — verification has a real cost (a signature check + a DB lookup) and
+    leaving it open invites anonymous verification farming / DoS. The genuinely
+    public, no-auth, no-server path is OFFLINE verification with our published
+    public key; that is the recommended integration route (see docs/proof-flow.md).
+    Revocation is only consulted when a DB is available.
     """
-    payload = build_payload(
-        wallet=body.wallet,
-        human_likelihood=body.human_likelihood.value,
-        trust_tier=body.trust_tier.value,
-        confidence_score=body.confidence_score,
-        risk_flags=[f.value for f in body.risk_flags],
-        chains=[c.value for c in body.chains],
-        scorer_version=body.proof.scorer_version,
-        key_id=body.proof.key_id,
-        issued_at=body.proof.issued_at,
-        expires_at=body.proof.expires_at,
-        nonce=body.proof.nonce,
-    )
-    proof = ProofDTO(payload=payload, signature=body.proof.signature)
+    proof = _proof_from_request(body)
     result = ProofService(signer, settings.proof_ttl_hours).verify(proof, session=db)
-    return ProofVerifyResponse(valid=result.valid, reason=result.reason, key_id=result.key_id)
+    return ProofVerifyResponse(
+        valid=result.valid,
+        reason=result.reason,
+        key_id=result.key_id,
+        expires_at=proof.payload.get("expires_at"),
+        revoked=result.reason == "revoked",
+        summary=summarize_payload(proof.payload),
+    )

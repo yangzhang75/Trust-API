@@ -92,13 +92,24 @@ class VerifyResponse(BaseModel):
     proof: Proof
 
 
-class ProofVerifyRequest(VerifyResponse):
+class ProofVerifyRequest(BaseModel):
     """Request body for POST /proof/verify.
 
-    Deliberately the same shape as a VerifyResponse: a consumer submits back
-    exactly what /verify returned and we recheck it. Every signed field is
-    required to reconstruct the canonical payload the signature covers.
+    Submit a self-contained proof (as produced by /proof/generate) in EITHER
+    form — the endpoint accepts whichever a sharer hands the verifier:
+
+      * compact:  ``{"encoded": "<base64url>"}``
+      * raw JSON: ``{"payload": {...}, "signature": "<base64>"}``
+
+    Everything needed to reconstruct the signed canonical payload travels in
+    the proof itself; no server-side lookup of the original assessment.
     """
+
+    model_config = ConfigDict(extra="forbid")
+
+    encoded: str | None = None
+    payload: dict | None = None
+    signature: str | None = None
 
 
 class GeneratedProof(BaseModel):
@@ -125,6 +136,11 @@ class ProofVerifyResponse(BaseModel):
     # One of: ok, unknown_key, bad_signature, revoked, expired.
     reason: str
     key_id: str | None = None
+    # The signed expiry (echoed from the proof) and whether it was revoked,
+    # plus a human-readable one-line summary of the assessment for display.
+    expires_at: str | None = None
+    revoked: bool = False
+    summary: str | None = None
 
 
 class ErrorResponse(BaseModel):
