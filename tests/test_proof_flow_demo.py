@@ -7,6 +7,8 @@ uses the SAME signing key so the server verdict matches the offline one."""
 from __future__ import annotations
 
 import base64
+import io
+import urllib.error
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -14,7 +16,7 @@ from sqlalchemy.orm import Session
 from tests.conftest import TEST_API_KEY
 from trust_api.config import Settings
 from trust_api.db.session import get_db
-from trust_api.demo.proof_flow import ALICE_WALLET, run
+from trust_api.demo.proof_flow import ALICE_WALLET, _http_server_verify, run
 from trust_api.main import create_app
 from trust_api.services.proof import load_signer
 
@@ -76,3 +78,55 @@ def test_proof_flow_demo_runs_end_to_end(db_session: Session) -> None:
     assert "Alice generates a proof" in text
     assert "Bob verifies OFFLINE" in text
     assert "FAILURE MODES" in text
+
+
+class _FakeResp:
+    """Minimal context-manager stand-in for urlopen's return value."""
+
+    def __init__(self, body: bytes) -> None:
+        self._body = body
+
+    def __enter__(self) -> _FakeResp:
+        return self
+
+    def __exit__(self, *exc: object) -> bool:
+        return False
+
+    def read(self) -> bytes:
+        return self._body
+
+
+def test_http_server_verify_success(monkeypatch) -> None:
+    verify = _http_server_verify("http://api.test", "k")
+    monkeypatch.setattr(
+        "urllib.request.urlopen",
+        lambda req, timeout=5: _FakeResp(b'{"valid": true, "reason": "ok"}'),
+    )
+    assert verify("ENCODED") == {"valid": True, "reason": "ok"}
+
+
+def test_http_server_verify_reports_http_error(monkeypatch) -> None:
+    verify = _http_server_verify("http://api.test", "k")
+
+    def _raise(req, timeout=5):
+        raise urllib.error.HTTPError(
+            "http://api.test", 422, "Unprocessable", {}, io.BytesIO(b"bad request body")
+        )
+
+    monkeypatch.setattr("urllib.request.urlopen", _raise)
+    out = verify("ENCODED")
+    assert out["valid"] is None
+    assert "HTTP 422" in out["reason"]
+    assert "bad request body" in out["reason"]
+
+
+def test_http_server_verify_reports_unreachable(monkeypatch) -> None:
+    verify = _http_server_verify("http://api.test", "k")
+
+    def _raise(req, timeout=5):
+        raise urllib.error.URLError("connection refused")
+
+    monkeypatch.setattr("urllib.request.urlopen", _raise)
+    out = verify("ENCODED")
+    assert out["valid"] is None
+    assert "server unreachable" in out["reason"]

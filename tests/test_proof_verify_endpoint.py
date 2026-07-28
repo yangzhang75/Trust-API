@@ -130,6 +130,39 @@ def test_verify_rejects_incomplete_request() -> None:
     assert "either 'encoded'" in resp.json()["detail"]
 
 
+def test_verify_rejects_signature_without_payload() -> None:
+    client = _client()
+    resp = client.post("/proof/verify", json={"signature": "abc"}, headers=AUTH)
+    assert resp.status_code == 422
+    assert "either 'encoded'" in resp.json()["detail"]
+
+
+def test_verify_rejects_empty_body() -> None:
+    client = _client()
+    assert client.post("/proof/verify", json={}, headers=AUTH).status_code == 422
+
+
+def test_verify_rejects_unknown_field() -> None:
+    client = _client()
+    issued = _generate(client)
+    resp = client.post(
+        "/proof/verify", json={"encoded": issued["encoded"], "bogus": 1}, headers=AUTH
+    )
+    assert resp.status_code == 422  # extra="forbid"
+
+
+def test_verify_encoded_takes_precedence_over_payload() -> None:
+    """When both forms are present, the encoded form is authoritative."""
+    client = _client()
+    issued = _generate(client)
+    body = client.post(
+        "/proof/verify",
+        json={"encoded": issued["encoded"], "payload": {"wallet": "x"}, "signature": "bad"},
+        headers=AUTH,
+    ).json()
+    assert body["valid"] is True and body["reason"] == "ok"
+
+
 def test_verify_requires_api_key() -> None:
     client = _client()
     issued = _generate(client)

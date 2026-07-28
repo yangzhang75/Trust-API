@@ -57,7 +57,11 @@ def decode_proof(data: str) -> Proof:
     """
     s = data.strip()
     if s.startswith("{"):
-        return _proof_from_obj(json.loads(s))
+        try:
+            obj = json.loads(s)
+        except ValueError as exc:  # JSONDecodeError
+            raise ValueError("not valid JSON") from exc
+        return _proof_from_obj(obj)
     padded = s + "=" * (-len(s) % 4)
     try:
         raw = base64.urlsafe_b64decode(padded.encode("ascii"))

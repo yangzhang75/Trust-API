@@ -159,7 +159,7 @@ def run(
     }
 
 
-def _http_server_verify(api_url: str, api_key: str) -> ServerVerify:  # pragma: no cover
+def _http_server_verify(api_url: str, api_key: str) -> ServerVerify:
     """A server_verify that POSTs to a running API (used by main())."""
 
     def _verify(encoded: str) -> dict[str, Any]:

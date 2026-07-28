@@ -45,6 +45,16 @@ def test_generate_encoded_form_decodes_to_the_same_payload() -> None:
     assert encode_proof(proof) == body["encoded"]
 
 
+def test_generate_reflects_requested_chains() -> None:
+    client = _client()
+    body = client.post(
+        "/proof/generate",
+        json={"wallet": VALID_WALLET, "chains": ["ethereum", "arbitrum"]},
+        headers=AUTH,
+    ).json()
+    assert body["payload"]["chains"] == ["ethereum", "arbitrum"]
+
+
 def test_generate_rejects_invalid_wallet() -> None:
     client = _client()
     resp = client.post("/proof/generate", json={"wallet": "0xnothex"}, headers=AUTH)

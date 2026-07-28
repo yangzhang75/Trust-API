@@ -90,6 +90,25 @@ def test_decode_rejects_garbage() -> None:
         decode_proof("!!! not base64 !!!")
 
 
+def test_decode_rejects_malformed_json_object() -> None:
+    # Leading brace -> JSON path; a clean ValueError, not a raw JSONDecodeError.
+    with pytest.raises(ValueError, match="not valid JSON"):
+        decode_proof('{"payload": ')
+
+
+def test_decode_rejects_empty_and_whitespace() -> None:
+    for bad in ("", "   ", "\n\t"):
+        with pytest.raises(ValueError, match="not valid base64url or JSON"):
+            decode_proof(bad)
+
+
+def test_decode_rejects_encoded_scalar() -> None:
+    # base64url of a JSON scalar (not an object) -> reaches the shape check.
+    encoded = base64.urlsafe_b64encode(b'"hello"').rstrip(b"=").decode("ascii")
+    with pytest.raises(ValueError, match="must be an object"):
+        decode_proof(encoded)
+
+
 def test_decode_encoded_object_without_leading_brace_whitespace() -> None:
     """A JSON object with leading whitespace is still recognized as JSON."""
     proof = _proof()
