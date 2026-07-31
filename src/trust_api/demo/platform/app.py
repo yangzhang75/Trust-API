@@ -1,15 +1,48 @@
 """The mock platform FastAPI app (a client of the Trust API).
 
-Scenario endpoints are added in later commits; this is the skeleton: settings,
-the Trust API client on app.state, and a health check.
+Skeleton (settings + Trust API client on app.state + health) plus the scenario
+endpoints. All Trust API access goes through ``TrustClient`` over HTTP.
 """
 
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException, Request
+from pydantic import BaseModel
 
-from trust_api.demo.platform.client import TrustClient
+from trust_api.demo.platform.client import TrustClient, TrustError
 from trust_api.demo.platform.config import MockSettings, get_mock_settings
+from trust_api.demo.platform.policy import decide_login
+
+
+def get_trust_client(request: Request) -> TrustClient:
+    """Resolve the Trust API client stashed on app.state (overridable in tests)."""
+    return request.app.state.trust_client
+
+
+def _assess(client: TrustClient, wallet: str) -> dict | None:
+    """Call Trust API /verify, translating upstream errors for a real client.
+
+    Returns the assessment, or ``None`` when the Trust API rejects the wallet
+    as invalid (HTTP 400) — the caller treats that as a normal rejection. Any
+    other upstream failure (auth, rate limit, outage) surfaces as a 502, since
+    the mock genuinely cannot make a decision then.
+    """
+    try:
+        return client.verify(wallet)
+    except TrustError as exc:
+        if exc.status_code == 400:
+            return None
+        raise HTTPException(status_code=502, detail=f"Trust API unavailable: {exc.detail}") from exc
+
+
+class WalletRequest(BaseModel):
+    wallet: str
+
+
+class LoginResponse(BaseModel):
+    accepted: bool
+    tier: str
+    reason: str
 
 
 def create_mock_app(settings: MockSettings | None = None) -> FastAPI:
@@ -21,5 +54,16 @@ def create_mock_app(settings: MockSettings | None = None) -> FastAPI:
     @app.get("/mock/health", tags=["mock"])
     def health() -> dict:
         return {"status": "ok", "trust_api_url": settings.trust_api_url}
+
+    @app.post("/mock/login", response_model=LoginResponse, tags=["mock"])
+    def login(
+        body: WalletRequest, client: TrustClient = Depends(get_trust_client)
+    ) -> LoginResponse:
+        """Scenario A — social login: accept silver+, flag bronze, reject sybil."""
+        assessment = _assess(client, body.wallet)
+        if assessment is None:
+            return LoginResponse(accepted=False, tier="invalid", reason="invalid_wallet")
+        d = decide_login(assessment)
+        return LoginResponse(accepted=d.accepted, tier=d.tier, reason=d.reason)
 
     return app

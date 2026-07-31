@@ -2,10 +2,17 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from fastapi.testclient import TestClient
 
-from trust_api.demo.platform.app import create_mock_app
+from trust_api.demo.platform.app import create_mock_app, get_trust_client
 from trust_api.demo.platform.config import MockSettings, get_mock_settings
+
+
+def test_get_trust_client_reads_app_state() -> None:
+    request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(trust_client="sentinel")))
+    assert get_trust_client(request) == "sentinel"
 
 
 def test_health_reports_trust_api_url() -> None:
