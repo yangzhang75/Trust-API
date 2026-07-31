@@ -68,6 +68,28 @@ curl -sX POST http://localhost:8000/proof/generate \
 Auth: requires a valid API key (`X-API-Key`), then rate-limited. An invalid
 wallet returns `400`.
 
+### The `encoded` field (compact form)
+
+- **What it is:** `encoded` is the **base64url of the canonical JSON** of the
+  self-contained proof object (`{payload, signature}`). It carries exactly the
+  same information as `payload` + `signature` — no more, no less — just packed
+  into one URL-safe string (`A–Z a–z 0–9 - _`, no padding).
+- **When to use it:** for **URL-safe sharing** — embed a proof in a link query
+  param, a deep link, or a **QR code** — anywhere a single opaque token is
+  easier to pass around than a JSON object. (For server-to-server / SDK
+  integrations, the raw `payload` + `signature` is usually more convenient.)
+- **How to decode it back:** pass it to the bundled `decode_proof` helper, which
+  returns the original proof object (it accepts either the `encoded` string or
+  raw JSON):
+
+  ```python
+  from trust_api.services.proof.share import decode_proof
+  proof = decode_proof(encoded)   # -> Proof(payload=..., signature=...)
+  ```
+
+  The round-trip is deterministic (decode then re-encode is byte-identical), and
+  you then verify the decoded proof exactly as in §3 (offline) or §4 (server).
+
 ## 2. Share a proof — two interchangeable forms
 
 Both forms carry the **same** self-contained object `{payload, signature}`:
