@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from trust_api.demo.platform.client import TrustClient, TrustError
 from trust_api.demo.platform.config import MockSettings, get_mock_settings
-from trust_api.demo.platform.policy import decide_login
+from trust_api.demo.platform.policy import decide_creator, decide_login
 
 
 def get_trust_client(request: Request) -> TrustClient:
@@ -35,6 +35,15 @@ def _assess(client: TrustClient, wallet: str) -> dict | None:
         raise HTTPException(status_code=502, detail=f"Trust API unavailable: {exc.detail}") from exc
 
 
+def _generate_proof_or_502(client: TrustClient, wallet: str) -> dict:
+    try:
+        return client.generate_proof(wallet)
+    except TrustError as exc:
+        raise HTTPException(
+            status_code=502, detail=f"Trust API proof failed: {exc.detail}"
+        ) from exc
+
+
 class WalletRequest(BaseModel):
     wallet: str
 
@@ -43,6 +52,13 @@ class LoginResponse(BaseModel):
     accepted: bool
     tier: str
     reason: str
+
+
+class CreatorResponse(BaseModel):
+    approved: bool
+    tier: str
+    reason: str
+    proof: dict | None = None
 
 
 def create_mock_app(settings: MockSettings | None = None) -> FastAPI:
@@ -65,5 +81,19 @@ def create_mock_app(settings: MockSettings | None = None) -> FastAPI:
             return LoginResponse(accepted=False, tier="invalid", reason="invalid_wallet")
         d = decide_login(assessment)
         return LoginResponse(accepted=d.accepted, tier=d.tier, reason=d.reason)
+
+    @app.post("/mock/creator/apply", response_model=CreatorResponse, tags=["mock"])
+    def creator_apply(
+        body: WalletRequest, client: TrustClient = Depends(get_trust_client)
+    ) -> CreatorResponse:
+        """Scenario B — creator verification: gold-only, issue a proof on success."""
+        assessment = _assess(client, body.wallet)
+        if assessment is None:
+            return CreatorResponse(approved=False, tier="invalid", reason="invalid_wallet")
+        d = decide_creator(assessment)
+        if not d.approved:
+            return CreatorResponse(approved=False, tier=d.tier, reason=d.reason)
+        proof = _generate_proof_or_502(client, body.wallet)
+        return CreatorResponse(approved=True, tier=d.tier, reason=d.reason, proof=proof)
 
     return app

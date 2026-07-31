@@ -42,3 +42,18 @@ def decide_login(assessment: dict) -> LoginDecision:
     if tier == "bronze":
         return LoginDecision(accepted=True, tier=tier, reason="flagged_low_tier")
     return LoginDecision(accepted=False, tier=tier, reason="unknown_tier")
+
+
+@dataclass(frozen=True)
+class CreatorDecision:
+    approved: bool
+    tier: str
+    reason: str
+
+
+def decide_creator(assessment: dict) -> CreatorDecision:
+    """Scenario B — creator verification: only gold tier is approved."""
+    tier = _tier(assessment)
+    if tier == "gold":
+        return CreatorDecision(approved=True, tier=tier, reason="gold_tier")
+    return CreatorDecision(approved=False, tier=tier, reason="tier_below_gold")
