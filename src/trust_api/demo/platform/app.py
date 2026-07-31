@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from trust_api.demo.platform.client import TrustClient, TrustError
 from trust_api.demo.platform.config import MockSettings, get_mock_settings
-from trust_api.demo.platform.policy import decide_creator, decide_login
+from trust_api.demo.platform.policy import decide_creator, decide_filter, decide_login
 
 
 def get_trust_client(request: Request) -> TrustClient:
@@ -61,6 +61,21 @@ class CreatorResponse(BaseModel):
     proof: dict | None = None
 
 
+class BatchRequest(BaseModel):
+    wallets: list[str]
+
+
+class FilterEntry(BaseModel):
+    wallet: str
+    tier: str
+    reason: str
+
+
+class BatchResponse(BaseModel):
+    kept: list[FilterEntry]
+    removed: list[FilterEntry]
+
+
 def create_mock_app(settings: MockSettings | None = None) -> FastAPI:
     settings = settings or get_mock_settings()
     app = FastAPI(title="Mock Platform — Trust API client", version="0.1.0")
@@ -95,5 +110,25 @@ def create_mock_app(settings: MockSettings | None = None) -> FastAPI:
             return CreatorResponse(approved=False, tier=d.tier, reason=d.reason)
         proof = _generate_proof_or_502(client, body.wallet)
         return CreatorResponse(approved=True, tier=d.tier, reason=d.reason, proof=proof)
+
+    @app.post("/mock/filter/batch", response_model=BatchResponse, tags=["mock"])
+    def filter_batch(
+        body: BatchRequest, client: TrustClient = Depends(get_trust_client)
+    ) -> BatchResponse:
+        """Scenario C — bot filtering in bulk. Per-wallet failure isolation: one
+        bad/rate-limited wallet is marked removed, it does not fail the batch."""
+        kept: list[FilterEntry] = []
+        removed: list[FilterEntry] = []
+        for wallet in body.wallets:
+            try:
+                assessment = client.verify(wallet)
+            except TrustError as exc:
+                reason = "invalid_wallet" if exc.status_code == 400 else "trust_api_error"
+                removed.append(FilterEntry(wallet=wallet, tier="error", reason=reason))
+                continue
+            d = decide_filter(assessment)
+            entry = FilterEntry(wallet=wallet, tier=d.tier, reason=d.reason)
+            (kept if d.keep else removed).append(entry)
+        return BatchResponse(kept=kept, removed=removed)
 
     return app

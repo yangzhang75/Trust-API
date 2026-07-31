@@ -57,3 +57,25 @@ def decide_creator(assessment: dict) -> CreatorDecision:
     if tier == "gold":
         return CreatorDecision(approved=True, tier=tier, reason="gold_tier")
     return CreatorDecision(approved=False, tier=tier, reason="tier_below_gold")
+
+
+@dataclass(frozen=True)
+class FilterDecision:
+    keep: bool
+    tier: str
+    reason: str
+
+
+def decide_filter(assessment: dict) -> FilterDecision:
+    """Scenario C — bot filtering: remove likely bots.
+
+    Remove on a ``sybil_suspected`` flag or ``low`` human-likelihood; keep the
+    rest. (Tier alone isn't the signal here — a genuine but new human can be
+    bronze; the bot signal is the sybil flag / low likelihood.)
+    """
+    tier = _tier(assessment)
+    if SYBIL_FLAG in _flags(assessment):
+        return FilterDecision(keep=False, tier=tier, reason="sybil_suspected")
+    if assessment.get("human_likelihood") == "low":
+        return FilterDecision(keep=False, tier=tier, reason="low_human_likelihood")
+    return FilterDecision(keep=True, tier=tier, reason="looks_human")
