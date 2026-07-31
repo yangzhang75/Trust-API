@@ -19,7 +19,9 @@ class MockSettings(BaseSettings):
     # A real API key from the Trust API's allowlist.
     trust_api_key: str = "dev-key"
     # Local SQLite metrics store — deliberately NOT the Trust API's Postgres.
-    db_path: str = "mock_metrics.db"
+    # Default in-memory (per-process); the demo/compose sets MOCK_DB_PATH to a
+    # file for persistence across the simulator run.
+    db_path: str = ":memory:"
 
 
 def get_mock_settings() -> MockSettings:
