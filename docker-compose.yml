@@ -112,5 +112,25 @@ services:
       streamlit run dashboard/streamlit_app.py
       --server.port=8501 --server.address=0.0.0.0
 
+  # Mock platform (Week 10) — a CLIENT of the Trust API, not part of it. Talks
+  # to the API over the compose network (http://api:8000) with a real API key,
+  # and keeps its own SQLite metrics store (never the Trust API's Postgres).
+  mock:
+    build: .
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      MOCK_TRUST_API_URL: http://api:8000
+      MOCK_TRUST_API_KEY: ${MOCK_TRUST_API_KEY:-dev-key}
+      MOCK_DB_PATH: /tmp/mock_metrics.db
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "8001:8001"
+    command: >-
+      uvicorn trust_api.demo.platform.app:create_mock_app --factory
+      --host 0.0.0.0 --port 8001
+
 volumes:
   pgdata:
