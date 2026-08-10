@@ -33,46 +33,84 @@ The batch **did** run the graph pass — tiers moved hard (gold 7 → 0, bronze
 connected component). So graph features were populated and fed into scoring; the
 problem is what they did.
 
-## Why it didn't reach 78.6% — analysis (not smoothed over)
+## Why it didn't reach 78.6% — precise mechanism
 
-**1. An arbitrary batch over-connects into one component.** The cluster edge
-rule links any two wallets that share a top funder *or* a counterparty *or* a
-direct transfer. Two dozen real wallets almost all touch mainstream
-counterparties (popular DEXs, stablecoins, bridges), so they all link —
-`graph_context_size = 23`. When *everyone* is "clustered," the cluster-size
-signal fires for humans and sybils alike and drops the whole batch to bronze.
-It penalizes indiscriminately instead of isolating farming clusters.
+> **Correction to an earlier version of this doc.** It first attributed the
+> null result to the `sybil_suspected` flag "not firing." That was imprecise —
+> `sybil_suspected` is driven by *behavioral* signals and is **not** affected by
+> graph features. The graph features drive a **different** flag, `sybil_cluster`,
+> and the real story (below) is that `sybil_cluster` fires on *almost everyone*.
 
-**2. The 78.6% baseline is Sybil-dominated; a balanced set is inherently
-harder.** `scoring-eval.md` flags that its TEST split is class-imbalanced (far
-more sybils than humans), so its headline accuracy is sybil-dominated —
-predicting "sybil/bronze" often is *rewarded* there. The graph-aware scorer's
-tendency to push clustered wallets toward bronze looks great on a sybil-heavy
-split and like a coin-flip (≈50%) on our balanced 12/12 set. Batch scoring
-faithfully reproduces that tendency; the balanced set just exposes it.
+### Two different sybil flags — don't conflate them
 
-**3. Even a real cluster only drops tier — it doesn't set the flag.** Batching a
-verified 5-member sybil cluster (`hop-543`) alone gives `graph_context_size = 5`
-for all and **all bronze** — the *right* low-trust outcome — but
-`sybil_suspected` still fires **0/5**. The flag's a-priori thresholds
-(`docs/scoring.md`) aren't met even on a genuine cluster of this size, so
-flag-based recall stays low regardless of batching.
+| flag | driven by | our batch measurement |
+| --- | --- | --- |
+| `sybil_suspected` | **behavioral** signals (`_sybil_signals`: low diversity, bot burst, new+inactive) — **not graph** | humans 0/12, sybils 1/12 |
+| `sybil_cluster` | **graph** signals (`_graph_signals` ≥ `CLUSTER_MIN_SIGNALS`) | **humans 12/12, sybils 11/12** |
+
+So graph features *are* used — `sybil_cluster` fires and drags tiers to bronze.
+The failure is that it fires on **humans too**.
+
+### The 4 graph features: thresholds vs measured means (batch of 12+12)
+
+| graph feature | threshold to fire | human mean | sybil mean | discriminates? |
+| --- | --- | --- | --- | --- |
+| `cluster_size_estimate` | ≥ 3 (`CLUSTER_SIZE_MIN`) | **23.0** | **21.2** | ❌ both fire (over-connected) |
+| `counterparty_overlap_score` | ≥ 0.30 (`COUNTERPARTY_OVERLAP_MIN`) | 0.095 | **0.469** | ✅ **only sybils fire** |
+| `shared_funder_score` | ≥ 0.33 (`SHARED_FUNDER_MIN`) | 0.167 | 0.278 | ~ neither fires reliably |
+| `funding_chain_depth` | ≥ 2 (`FUNDING_CHAIN_MIN`) | 0.0 | 0.083 | neither fires |
+
+Two facts jump out:
+
+1. **`cluster_size_estimate` is corrupted by over-connection.** The cluster edge
+   rule links any two wallets that share a top funder *or* any counterparty *or*
+   a direct transfer. Real wallets almost all touch mainstream counterparties
+   (popular DEXs, stablecoins, bridges), so an arbitrary batch collapses into one
+   giant component — cluster size ≈ 23 for humans *and* ≈ 21 for sybils. This
+   signal is ≥ 3 for **everyone**, so it carries no discriminating information.
+
+2. **`counterparty_overlap_score` genuinely discriminates** — 0.47 for sybils vs
+   0.10 for humans. There *is* real signal in the graph features; it's just one
+   feature, and it's being drowned out (next).
+
+### `CLUSTER_MIN_SIGNALS = 1` is the dominant failure mode
+
+`sybil_cluster` fires when **any one** of the four graph signals crosses its
+threshold (`_graph_signals(f) >= CLUSTER_MIN_SIGNALS`, and `CLUSTER_MIN_SIGNALS`
+is **1**). Because the corrupted `cluster_size` signal is true for everyone, one
+signal is *always* met — so `sybil_cluster` fires on all 24 wallets, humans
+included, and the whole batch is penalized to bronze. The one feature that
+*does* separate humans from sybils (`counterparty_overlap`) never gets to matter,
+because the flag has already fired on the useless one.
+
+Net: **there is a discriminating feature, but a threshold of 1 lets a
+non-discriminating (over-connected) feature trigger the flag for everyone,
+drowning the signal.** Requiring ≥ 2 graph signals would, on these measured
+means, drop humans (only `cluster_size` → 1 signal) below the flag while keeping
+sybils (`cluster_size` + `counterparty_overlap` → 2 signals) — a hypothesis the
+threshold experiment tests (see docs/threshold-experiment.md).
+
+### Also: the 78.6% baseline is Sybil-dominated
+
+Independently, `scoring-eval.md` flags that its TEST split is class-imbalanced
+(far more sybils than humans), so its headline accuracy is sybil-dominated —
+predicting bronze often is *rewarded* there. A balanced 12/12 set is inherently
+harder for a scorer that pushes clustered wallets toward bronze; part of the
+54% vs 78.6% gap is this measurement-set difference, not only the mechanism above.
 
 ## What this means
 
-- **The endpoint works as built** (graph features populate; `graph_context_size`
-  tracks real component sizes: 5 for a real cluster, 23 for an over-connected
-  mix). This is not a wiring bug — it's a property of the scorer + cohort.
-- **Batching is necessary but not sufficient.** Graph features only discriminate
-  when the batch is a *meaningful neighborhood*. An arbitrary cohort adds
-  spurious edges and degenerates to "everyone bronze."
-- **The gap is not closed by this change alone.** Honestly: to actually lift
-  balanced accuracy we would need (a) an edge rule that ignores high-degree
-  mainstream counterparties (so incidental sharing doesn't over-connect), (b)
-  cluster-aligned batching (group by campaign/time/referrer, not at random), and
-  (c) re-tuning the `sybil_suspected` thresholds against a balanced set. Those
-  are scoring-logic changes, explicitly out of scope for Week 11 (which must not
-  touch scoring rules or thresholds).
+- **The endpoint works as built** — graph features populate and `sybil_cluster`
+  reacts. This is not a wiring bug; it is a scoring-threshold + edge-rule
+  property.
+- **Batching is necessary but not sufficient.** The graph signal exists
+  (`counterparty_overlap`) but is drowned by an over-connected `cluster_size` at
+  a permissive threshold.
+- **Concrete, ranked fixes** (all scoring-logic changes — out of Week 11 scope):
+  1. `CLUSTER_MIN_SIGNALS: 1 → 2` — smallest lever; tested in
+     docs/threshold-experiment.md.
+  2. Rare-counterparty edge filtering so `cluster_size` stops over-connecting.
+  3. Cluster-aligned batching (group by campaign/time/referrer, not at random).
 
 ## Reproduce
 
