@@ -37,7 +37,9 @@ class TrustClient:
         self._client = client or httpx.Client(base_url=base_url, timeout=timeout)
         self._headers = {"X-API-Key": api_key}
 
-    def _post(self, path: str, payload: dict) -> dict:
+    def _post(self, path: str, payload: dict):
+        """POST JSON; return the parsed body (dict or list). Non-200 / failed
+        request -> TrustError."""
         try:
             resp = self._client.post(path, json=payload, headers=self._headers)
         except httpx.HTTPError as exc:  # connection refused, timeout, DNS, …
@@ -62,6 +64,13 @@ class TrustClient:
     def generate_proof(self, wallet: str, chains: list[str] | None = None) -> dict:
         """POST /proof/generate — returns a self-contained, shareable proof."""
         return self._post("/proof/generate", self._payload(wallet, chains))
+
+    def verify_batch(self, wallets: list[str], chains: list[str] | None = None) -> list[dict]:
+        """POST /verify/batch — score wallets together (graph features populated)."""
+        payload: dict = {"wallets": wallets}
+        if chains:
+            payload["chains"] = chains
+        return self._post("/verify/batch", payload)
 
     def close(self) -> None:
         self._client.close()

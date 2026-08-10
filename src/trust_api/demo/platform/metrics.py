@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import sqlite3
 import threading
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS events (
@@ -24,6 +24,19 @@ CREATE TABLE IF NOT EXISTS events (
 )
 """
 
+# Accounts registered via an accepted login — the state the hybrid background
+# re-score job updates (and may retroactively suspend).
+_ACCOUNTS_SCHEMA = """
+CREATE TABLE IF NOT EXISTS accounts (
+    wallet           TEXT PRIMARY KEY,
+    status           TEXT NOT NULL,
+    tier             TEXT NOT NULL,
+    last_login_at    TEXT NOT NULL,
+    suspended_reason TEXT,
+    suspended_at     TEXT
+)
+"""
+
 
 class MetricsStore:
     def __init__(self, db_path: str) -> None:
@@ -31,6 +44,7 @@ class MetricsStore:
         self._lock = threading.Lock()
         with self._lock:
             self._conn.execute(_SCHEMA)
+            self._conn.execute(_ACCOUNTS_SCHEMA)
             self._conn.commit()
 
     def record(
@@ -84,6 +98,57 @@ class MetricsStore:
             }
             for scenario, s in agg.items()
         }
+
+    # --- accounts (hybrid re-score) --------------------------------------
+
+    def upsert_account(self, wallet: str, tier: str, *, now: str | None = None) -> None:
+        """Register/refresh an active account on an accepted login."""
+        now = now or datetime.now(UTC).isoformat()
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT INTO accounts (wallet, status, tier, last_login_at)
+                VALUES (?, 'active', ?, ?)
+                ON CONFLICT(wallet) DO UPDATE SET
+                    status='active', tier=excluded.tier, last_login_at=excluded.last_login_at,
+                    suspended_reason=NULL, suspended_at=NULL
+                """,
+                (wallet, tier, now),
+            )
+            self._conn.commit()
+
+    def recent_active_accounts(
+        self, since_minutes: int, *, now: datetime | None = None
+    ) -> list[str]:
+        """Active accounts whose last login is within the window (for re-score)."""
+        now = now or datetime.now(UTC)
+        cutoff = (now - timedelta(minutes=since_minutes)).isoformat()
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT wallet FROM accounts WHERE status='active' AND last_login_at >= ?",
+                (cutoff,),
+            ).fetchall()
+        return [r[0] for r in rows]
+
+    def suspend_account(self, wallet: str, reason: str, *, now: str | None = None) -> None:
+        now = now or datetime.now(UTC).isoformat()
+        with self._lock:
+            self._conn.execute(
+                "UPDATE accounts SET status='suspended', suspended_reason=?, suspended_at=? "
+                "WHERE wallet=?",
+                (reason, now, wallet),
+            )
+            self._conn.commit()
+
+    def account(self, wallet: str) -> dict | None:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT wallet, status, tier, suspended_reason FROM accounts WHERE wallet=?",
+                (wallet,),
+            ).fetchone()
+        if row is None:
+            return None
+        return {"wallet": row[0], "status": row[1], "tier": row[2], "suspended_reason": row[3]}
 
     def close(self) -> None:
         self._conn.close()

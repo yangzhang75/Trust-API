@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 from trust_api.demo.platform.client import TrustClient, TrustError
 from trust_api.demo.platform.config import MockSettings, get_mock_settings
+from trust_api.demo.platform.hybrid import rescore_recent
 from trust_api.demo.platform.metrics import MetricsStore
 from trust_api.demo.platform.policy import decide_creator, decide_filter, decide_login
 
@@ -118,6 +119,9 @@ def create_mock_app(settings: MockSettings | None = None) -> FastAPI:
             reason=resp.reason,
             latency_ms=latency_ms,
         )
+        if resp.accepted:
+            # Register the account so the hybrid re-score job can revisit it.
+            metrics.upsert_account(body.wallet, resp.tier)
         return resp
 
     @app.post("/mock/creator/apply", response_model=CreatorResponse, tags=["mock"])
@@ -186,5 +190,15 @@ def create_mock_app(settings: MockSettings | None = None) -> FastAPI:
         """Per-scenario totals, accept/reject, acceptance rate, avg latency, and
         tier + reason breakdowns."""
         return metrics.stats()
+
+    @app.post("/mock/rescore", tags=["mock"])
+    def rescore(
+        client: TrustClient = Depends(get_trust_client),
+        metrics: MetricsStore = Depends(get_metrics),
+    ) -> dict:
+        """Force the hybrid batch re-score now (the 'run immediately' demo flag
+        for the every-15-min background job). Re-scores recent accounts via
+        /verify/batch and retroactively suspends any that flip to sybil/bronze."""
+        return rescore_recent(metrics, client)
 
     return app

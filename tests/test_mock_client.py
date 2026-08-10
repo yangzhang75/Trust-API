@@ -43,6 +43,24 @@ def test_generate_proof_hits_proof_endpoint_with_chains() -> None:
     assert _client(handler).generate_proof("0xabc", chains=["ethereum"])["encoded"] == "abc"
 
 
+def test_verify_batch_posts_wallets_and_returns_list() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/verify/batch"
+        assert json.loads(request.content) == {"wallets": ["0xa", "0xb"], "chains": ["arbitrum"]}
+        return httpx.Response(200, json=[{"wallet": "0xa"}, {"wallet": "0xb"}])
+
+    result = _client(handler).verify_batch(["0xa", "0xb"], chains=["arbitrum"])
+    assert [r["wallet"] for r in result] == ["0xa", "0xb"]
+
+
+def test_verify_batch_omits_chains_when_not_given() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert "chains" not in json.loads(request.content)
+        return httpx.Response(200, json=[])
+
+    assert _client(handler).verify_batch(["0xa"]) == []
+
+
 def test_error_with_json_detail() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(400, json={"detail": "Invalid wallet address"})
