@@ -63,6 +63,21 @@ class VerifyRequest(BaseModel):
     chains: list[Chain] = Field(default_factory=lambda: [Chain.ethereum], min_length=1)
 
 
+class BatchVerifyRequest(BaseModel):
+    """Request body for POST /verify/batch.
+
+    A list of wallets scored together, with the batch itself as the graph
+    context so cluster (graph) features are populated — closing the accuracy
+    gap that single-wallet /verify has. ``chains`` defaults exactly like
+    /verify. Batch size is capped in the route (see MAX_BATCH_WALLETS).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    wallets: list[str] = Field(..., min_length=1, examples=[["0x…", "0x…"]])
+    chains: list[Chain] = Field(default_factory=lambda: [Chain.ethereum], min_length=1)
+
+
 class Proof(BaseModel):
     """A time-bounded, Ed25519-signed attestation of an assessment.
 

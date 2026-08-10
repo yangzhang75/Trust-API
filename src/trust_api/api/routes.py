@@ -25,6 +25,7 @@ from trust_api.db.models import Wallet, WalletFeature
 from trust_api.db.session import get_db
 from trust_api.pipeline import INGEST_CHAINS, record_score
 from trust_api.schemas.verify import (
+    BatchVerifyRequest,
     ErrorResponse,
     GeneratedProof,
     Proof,
@@ -43,6 +44,10 @@ from trust_api.services.scoring import score
 
 router = APIRouter()
 logger = get_logger(__name__)
+
+# Max wallets per POST /verify/batch request. Larger requests are rejected with
+# a 400 suggesting the client split into multiple calls.
+MAX_BATCH_WALLETS = 100
 
 
 def _query_features(db: Session, wallet_address: str) -> WalletFeature | None:
@@ -263,3 +268,85 @@ def verify_proof(
         revoked=result.reason == "revoked",
         summary=summarize_payload(proof.payload),
     )
+
+
+def _verify_response(wallet, result, chains, signed, ttl_hours: int) -> VerifyResponse:
+    """Build a /verify-shaped response from a scoring result + a signed proof.
+
+    Used by the batch endpoint; /verify builds its own inline (unchanged).
+    """
+    return VerifyResponse(
+        wallet=wallet,
+        human_likelihood=result.human_likelihood,
+        trust_tier=result.trust_tier,
+        confidence_score=result.confidence_score,
+        risk_flags=result.risk_flags,
+        chains=chains,
+        proof=Proof(
+            issued_at=signed.issued_at,
+            expires_at=signed.expires_at,
+            valid_for_hours=ttl_hours,
+            signature=signed.signature,
+            key_id=signed.key_id,
+            nonce=signed.nonce,
+            scorer_version=signed.payload["scorer_version"],
+        ),
+    )
+
+
+@router.post(
+    "/verify/batch",
+    response_model=list[VerifyResponse],
+    tags=["verify"],
+    summary="Assess a batch of wallets together (graph features populated within the batch)",
+    dependencies=[Depends(rate_limit)],  # one batch call counts as ONE request
+    responses={
+        400: {"model": ErrorResponse, "description": "Batch too large or an invalid wallet"},
+        401: {"model": ErrorResponse, "description": "Missing or invalid API key"},
+        422: {"description": "Malformed request body"},
+        429: {"model": ErrorResponse, "description": "Rate limit exceeded"},
+    },
+)
+def verify_batch(
+    body: BatchVerifyRequest,
+    settings: Annotated[Settings, Depends(get_settings)],
+    signer: Annotated[Signer, Depends(get_signer)],
+    db: Annotated[Session | None, Depends(get_db)] = None,
+) -> list[VerifyResponse]:
+    """Score many wallets in one call. One batch = one rate-limited request.
+
+    (Graph features are wired into this path in a follow-up commit; this
+    revision validates + scores each wallet and returns results in input order.)
+    """
+    if len(body.wallets) > MAX_BATCH_WALLETS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Batch too large: {len(body.wallets)} wallets (max {MAX_BATCH_WALLETS}). "
+                "Split into multiple /verify/batch calls."
+            ),
+        )
+    invalid = [w for w in body.wallets if not is_valid_evm_wallet(w)]
+    if invalid:
+        shown = ", ".join(invalid[:3]) + ("…" if len(invalid) > 3 else "")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid wallet address(es): {shown}",
+        )
+
+    proof_service = ProofService(signer, settings.proof_ttl_hours)
+    chain_values = [c.value for c in body.chains]
+    results: list[VerifyResponse] = []
+    for wallet in body.wallets:
+        started = perf_counter()
+        features = _resolve_features(db, wallet, settings) or EMPTY_FEATURES
+        result = score(features)
+        signed = proof_service.generate(
+            wallet=wallet, result=result, chains=chain_values, session=db
+        )
+        METRICS.record(ok=True, duration_seconds=perf_counter() - started)
+        _record_score_history(db, wallet, result)
+        results.append(
+            _verify_response(wallet, result, body.chains, signed, settings.proof_ttl_hours)
+        )
+    return results
