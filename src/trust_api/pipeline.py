@@ -14,6 +14,7 @@ from time import perf_counter
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from trust_api.config import Settings
@@ -23,7 +24,8 @@ from trust_api.core.validation import require_valid_wallet
 from trust_api.db.models import TrustScoreHistory, Wallet, WalletFeature
 from trust_api.schemas.verify import Chain
 from trust_api.services.features import compute_features
-from trust_api.services.ingestion import ingest_wallet
+from trust_api.services.features.graph import compute_graph_features
+from trust_api.services.ingestion import IngestionError, ingest_wallet
 from trust_api.services.scoring import SCORER_VERSION, ScoringResult, score
 
 logger = get_logger(__name__)
@@ -199,6 +201,75 @@ def score_wallets(
         scorer_version=SCORER_VERSION,
     )
     return summary
+
+
+@dataclass(frozen=True)
+class GraphScoredWallet:
+    """One wallet's batch result: its score plus how many wallets formed its
+    graph context (its connected-component size in the batch; 1 = isolated)."""
+
+    address: str
+    result: ScoringResult
+    graph_context_size: int
+
+
+def _get_or_create_wallet_id(session: Session, address: str) -> int:
+    wallet = session.execute(select(Wallet).where(Wallet.address == address)).scalar_one_or_none()
+    if wallet is None:
+        wallet = Wallet(address=address)
+        session.add(wallet)
+        session.flush()
+    return wallet.id
+
+
+def _ensure_ingested(session: Session, address: str, settings: Settings) -> int:
+    """Ingest the wallet when a provider is configured; otherwise (or on an
+    ingestion failure) get-or-create its row. A single wallet's ingestion
+    failure never aborts the batch."""
+    import asyncio
+
+    if settings.ingestion_provider_configured:
+        try:
+            return asyncio.run(_ingest(session, address, settings))
+        except (IngestionError, SQLAlchemyError):
+            session.rollback()
+    return _get_or_create_wallet_id(session, address)
+
+
+def score_batch_with_graph(
+    session: Session, addresses: list[str], settings: Settings, *, now: datetime | None = None
+) -> list[GraphScoredWallet]:
+    """Score a batch with GRAPH (cluster) features populated across the batch.
+
+    This is the batch half of the hybrid pattern that closes the Week-10
+    accuracy gap. Ordering mirrors the offline evaluation that achieves the
+    graph-aware accuracy: ingest each wallet -> compute behavioral features
+    each -> ``compute_graph_features`` across the WHOLE batch (the batch is the
+    graph context) -> score each with graph columns populated -> persist to
+    history. Reuses the Week-4 graph features and Week-5 pipeline helpers; no
+    scoring logic is reimplemented.
+
+    Results are returned in input order (duplicates preserved). Each wallet's
+    ``graph_context_size`` is its connected-component size within the batch
+    (1 = isolated: no graph relationships found with the others).
+    """
+    now = now or datetime.now(UTC)
+
+    resolved: list[tuple[str, int]] = []
+    for address in addresses:
+        wallet_id = _ensure_ingested(session, address, settings)
+        compute_features(session, wallet_id, now=now)
+        resolved.append((address, wallet_id))
+
+    graph = compute_graph_features(session, list({wid for _, wid in resolved}))
+
+    scored: list[GraphScoredWallet] = []
+    for address, wallet_id in resolved:
+        result = score(_feature_row(session, wallet_id))
+        record_score(session, address, result, now=now)
+        context = graph.get(wallet_id, {}).get("cluster_size_estimate", 1) or 1
+        scored.append(GraphScoredWallet(address=address, result=result, graph_context_size=context))
+    return scored
 
 
 def known_wallet_addresses(session: Session) -> list[str]:

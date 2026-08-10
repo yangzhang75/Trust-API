@@ -23,7 +23,12 @@ from trust_api.core.logging import get_logger
 from trust_api.core.metrics import METRICS
 from trust_api.db.models import Wallet, WalletFeature
 from trust_api.db.session import get_db
-from trust_api.pipeline import INGEST_CHAINS, record_score
+from trust_api.pipeline import (
+    INGEST_CHAINS,
+    GraphScoredWallet,
+    record_score,
+    score_batch_with_graph,
+)
 from trust_api.schemas.verify import (
     BatchVerifyRequest,
     ErrorResponse,
@@ -313,10 +318,14 @@ def verify_batch(
     signer: Annotated[Signer, Depends(get_signer)],
     db: Annotated[Session | None, Depends(get_db)] = None,
 ) -> list[VerifyResponse]:
-    """Score many wallets in one call. One batch = one rate-limited request.
+    """Score many wallets in one call, with graph (cluster) features populated
+    across the batch. One batch = one rate-limited request.
 
-    (Graph features are wired into this path in a follow-up commit; this
-    revision validates + scores each wallet and returns results in input order.)
+    The batch itself is the graph context, so cluster features
+    (shared_funder / counterparty_overlap / funding_chain_depth / cluster_size)
+    are computed and fed into scoring — the accuracy the single-wallet path
+    can't reach. Without a database (stub mode) the batch degrades to neutral
+    scores.
     """
     if len(body.wallets) > MAX_BATCH_WALLETS:
         raise HTTPException(
@@ -334,19 +343,20 @@ def verify_batch(
             detail=f"Invalid wallet address(es): {shown}",
         )
 
+    if db is None:
+        # No DB configured: can't ingest or build graph context -> neutral.
+        scored = [GraphScoredWallet(w, score(EMPTY_FEATURES), 1) for w in body.wallets]
+    else:
+        scored = score_batch_with_graph(db, body.wallets, settings)
+
     proof_service = ProofService(signer, settings.proof_ttl_hours)
     chain_values = [c.value for c in body.chains]
     results: list[VerifyResponse] = []
-    for wallet in body.wallets:
-        started = perf_counter()
-        features = _resolve_features(db, wallet, settings) or EMPTY_FEATURES
-        result = score(features)
+    for gs in scored:
         signed = proof_service.generate(
-            wallet=wallet, result=result, chains=chain_values, session=db
+            wallet=gs.address, result=gs.result, chains=chain_values, session=db
         )
-        METRICS.record(ok=True, duration_seconds=perf_counter() - started)
-        _record_score_history(db, wallet, result)
         results.append(
-            _verify_response(wallet, result, body.chains, signed, settings.proof_ttl_hours)
+            _verify_response(gs.address, gs.result, body.chains, signed, settings.proof_ttl_hours)
         )
     return results
