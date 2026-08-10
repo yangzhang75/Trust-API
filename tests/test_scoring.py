@@ -85,9 +85,36 @@ def test_single_signal_is_not_sybil() -> None:
 
 
 def test_graph_cluster_rule_fires_on_graph_evidence() -> None:
+    # Two graph signals -> fires under the 0.5.0 default (CLUSTER_MIN_SIGNALS=2).
     f = _features(cluster_size_estimate=5, shared_funder_score=0.67)
     assert engine.rule_graph_cluster(f) is True
     assert RiskFlag.sybil_cluster in engine.risk_flags(f)
+
+
+def test_graph_cluster_rule_needs_two_signals_by_default() -> None:
+    # A single graph signal (over-connected cluster_size alone) must NOT fire
+    # under the 0.5.0 default — this is the Week-11 threshold fix.
+    one_signal = _features(cluster_size_estimate=25)
+    assert engine._graph_signals(one_signal) == 1
+    assert engine.rule_graph_cluster(one_signal) is False
+
+
+def test_cluster_min_signals_env_override_reproduces_old_behavior(monkeypatch) -> None:
+    """The SCORING_CLUSTER_MIN_SIGNALS toggle still reproduces 0.4.0 (=1)."""
+    import importlib
+
+    from trust_api.services.scoring import config
+
+    monkeypatch.setenv("SCORING_CLUSTER_MIN_SIGNALS", "1")
+    try:
+        importlib.reload(config)
+        assert config.CLUSTER_MIN_SIGNALS == 1
+        # under =1, a single graph signal fires again (old behavior)
+        assert engine.rule_graph_cluster(_features(cluster_size_estimate=25)) is True
+    finally:
+        monkeypatch.delenv("SCORING_CLUSTER_MIN_SIGNALS", raising=False)
+        importlib.reload(config)
+    assert config.CLUSTER_MIN_SIGNALS == 2  # restored to the shipped default
 
 
 def test_graph_cluster_rule_absent_without_evidence() -> None:
@@ -96,7 +123,9 @@ def test_graph_cluster_rule_absent_without_evidence() -> None:
 
 
 def test_graph_ablation_switch_disables_cluster_flag() -> None:
-    f = _features(cluster_size_estimate=9)
+    # Two graph signals (cluster_size + counterparty_overlap) so the flag fires
+    # under the 0.5.0 default CLUSTER_MIN_SIGNALS=2, not just the old =1.
+    f = _features(cluster_size_estimate=9, counterparty_overlap_score=0.5)
     assert RiskFlag.sybil_cluster in engine.risk_flags(f, use_graph=True)
     assert RiskFlag.sybil_cluster not in engine.risk_flags(f, use_graph=False)
     # ablation changes the score deterministically

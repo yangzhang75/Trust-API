@@ -13,8 +13,10 @@ from trust_api.schemas.verify import HumanLikelihood, RiskFlag, TrustTier
 
 # Bumped whenever scoring logic/thresholds change, so history rows from
 # different scorer versions stay distinguishable (Week 5). Rule-based
-# scorer + graph features baseline: 0.4.0-graph.
-SCORER_VERSION = "0.4.0-graph"
+# scorer + graph features baseline was 0.4.0-graph; 0.5.0-threshold-v2 raises
+# CLUSTER_MIN_SIGNALS 1->2 (see docs/threshold-experiment.md). Old history rows
+# keep their 0.4.0-graph tag — versions are never rewritten retroactively.
+SCORER_VERSION = "0.5.0-threshold-v2"
 
 # --- Risk-rule thresholds -------------------------------------------------
 NEW_WALLET_MAX_AGE_DAYS = 30  # younger than this -> new_wallet
@@ -31,9 +33,11 @@ COUNTERPARTY_OVERLAP_MIN = 0.30  # Jaccard overlap with another wallet
 FUNDING_CHAIN_MIN = 2  # relay depth: funded through >= 2 in-sample hops
 CLUSTER_SIZE_MIN = 3  # connected component of >= 3 wallets
 # sybil_cluster fires when at least this many graph signals are present.
-# Overridable via SCORING_CLUSTER_MIN_SIGNALS for the Week-11 threshold
-# ablation (docs/threshold-experiment.md); default 1 keeps prod/CI unchanged.
-CLUSTER_MIN_SIGNALS = int(os.getenv("SCORING_CLUSTER_MIN_SIGNALS", "1"))
+# Default is 2 as of 0.5.0-threshold-v2: requiring two graph signals stops the
+# over-connected cluster_size signal from tripping the flag on its own (see
+# docs/threshold-experiment.md). Override via SCORING_CLUSTER_MIN_SIGNALS
+# (e.g. =1) to reproduce the old 0.4.0-graph behavior.
+CLUSTER_MIN_SIGNALS = int(os.getenv("SCORING_CLUSTER_MIN_SIGNALS", "2"))
 
 # --- Positive-evidence saturation points ----------------------------------
 # Each positive sub-score is feature / full-credit-point, capped at 1.0.

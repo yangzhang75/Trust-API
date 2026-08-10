@@ -39,17 +39,39 @@ corrupted signal trip the flag. The genuinely discriminating feature
 (`counterparty_overlap`, 0.47 sybil vs 0.10 human) was drowned out.
 (`accuracy-gap.md`.)
 
-**What we proved (threshold experiment).** A single-variable, red-lined,
-ablated experiment — `CLUSTER_MIN_SIGNALS: 1 → 2` — lifted balanced accuracy
-**54.2% → 62.5%** (+8.3 pts) by cutting human false-positives 8/12 → 5/12, with
-**no held-out-test regression**, at the cost of one fewer sybil caught and a
-5.2-pt drop on the sybil-heavy train split. (`threshold-experiment.md`.)
+**What we shipped (threshold fix, `0.5.0-threshold-v2`).** A single-variable,
+red-lined, ablated experiment — `CLUSTER_MIN_SIGNALS: 1 → 2` — then shipped as
+the default. Current **production** numbers:
+
+- Balanced accuracy **54.2% → 62.5%** (+8.3 pts), by cutting human
+  false-positives from **8/12 → 5/12** (2 humans even recover to gold).
+- Held-out TEST accuracy **82.14%** (unchanged by the fix).
+
+**The tradeoff, stated plainly (not hidden behind the accuracy gain):**
+
+- Human false-positives **dropped 8/12 → 5/12** (the win).
+- Sybil recall **dropped 75% → 67%** — one real sybil is now missed. Firing the
+  flag less eagerly helps humans and costs a borderline sybil; that is a genuine
+  precision/recall tradeoff, not a free lunch.
+- Held-out **TRAIN** accuracy dropped **76.6% → 71.4% (−5.2 pts)**. This is *not*
+  a red-line breach — TEST (the held-out, primary metric) is unchanged — but it
+  is honest to note: on a sybil-dominated split, predicting "sybil" less often
+  costs accuracy.
+
+**A number that changed — the 82.14% vs the old 78.57%.** The held-out TEST
+baseline now reads **82.14%**, replacing the **78.57%** previously in
+`scoring-eval.md`. This is **not** an effect of our change (TEST is identical at
+`=1` and `=2`); it is **live-data drift**. Reproducing the experiment required
+re-ingesting all 105 labeled wallets fresh, and wallets accrue on-chain activity
+between eval runs — one test wallet crossed the decision boundary (22/28 →
+23/28). We discovered this during the experiment and report it rather than
+quietly adopting the higher number.
 
 **Honest bottom line:** the gap is **partially narrowed, not closed.** 62.5% is
-still far from 78.6%, and part of that 78.6% is a class-imbalance artifact. Fully
-closing it needs scoring-logic work we scoped but did **not** implement:
-rare-counterparty edge filtering, cluster-aligned batching, and re-tuning on a
-balanced holdout (`scoring-v2-proposal.md`).
+still far from the cluster-aware headline, and part of that headline is a
+class-imbalance artifact. Fully closing it needs scoring-logic work we scoped but
+did **not** implement: rare-counterparty edge filtering, cluster-aligned
+batching, and re-tuning on a balanced holdout (`scoring-v2-proposal.md`).
 
 **Why this is the highlight:** at every step the measurement drove the claim —
 we reproduced the gap, diagnosed it to a specific line (`CLUSTER_MIN_SIGNALS`),

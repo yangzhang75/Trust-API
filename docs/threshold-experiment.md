@@ -95,9 +95,12 @@ SCORING_CLUSTER_MIN_SIGNALS=1 python measure_threshold.py   # ablation
 set.) Numbers drift slightly with live on-chain data; the direction
 (balanced +8 pts, holdout TEST flat, train −5 pts) is the finding.
 
-## Status of the change
+## Status of the change — SHIPPED
 
-Validated and recommended, but **not shipped as the default** in this commit:
-`CLUSTER_MIN_SIGNALS` still defaults to `1`. Flipping the default to `2` is a
-production scoring-behavior change (needs a `SCORER_VERSION` bump and test
-updates) — a separate decision. See [`scoring-v2-proposal.md`](scoring-v2-proposal.md).
+**Shipped in `SCORER_VERSION = 0.5.0-threshold-v2` (2026-08-10).**
+`CLUSTER_MIN_SIGNALS` now defaults to `2`. Post-ship verification (production
+default, same data snapshot) reproduced the experiment exactly: balanced
+**62.5%**, holdout TEST **82.14%**. Old behavior remains reproducible via
+`SCORING_CLUSTER_MIN_SIGNALS=1` (verified: balanced 54.2%). History rows scored
+under `0.4.0-graph` keep that tag — versions are not rewritten retroactively.
+Remaining fixes: [`scoring-v2-proposal.md`](scoring-v2-proposal.md) (#2–4).

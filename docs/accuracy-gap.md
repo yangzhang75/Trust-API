@@ -125,9 +125,14 @@ ablation). Result: **partial improvement, gap not closed.**
 
 So batch + this one threshold change lifts balanced accuracy a real but modest
 amount and does **not** restore cluster-aware accuracy. Fixes #2 and #3 remain
-the path to actually closing the gap. The change is validated behind
-`SCORING_CLUSTER_MIN_SIGNALS` (default still `1`); shipping it is a separate
-decision (`SCORER_VERSION` bump) — see [scoring-v2-proposal.md](scoring-v2-proposal.md).
+the path to actually closing the gap.
+
+**Shipped (2026-08-10).** This is now the **default** scoring behavior:
+`CLUSTER_MIN_SIGNALS = 2` under `SCORER_VERSION = 0.5.0-threshold-v2`. So the
+numbers above (balanced 62.5%, human FP 5/12, sybil recall 67%) are current
+production reality, not an experiment. Old `0.4.0-graph` behavior is still
+reproducible with `SCORING_CLUSTER_MIN_SIGNALS=1`. Remaining work to actually
+close the gap: [scoring-v2-proposal.md](scoring-v2-proposal.md) (#2–4).
 
 ## Reproduce
 

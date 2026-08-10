@@ -16,7 +16,7 @@ cohorts share mainstream counterparties → one giant component), and
 one genuinely discriminating feature, `counterparty_overlap` (0.47 sybil vs 0.10
 human), is drowned out.
 
-## Fix 1 — `CLUSTER_MIN_SIGNALS: 1 → 2`  ✅ validated (partial)
+## Fix 1 — `CLUSTER_MIN_SIGNALS: 1 → 2`  ✅ SHIPPED in v0.5.0-threshold-v2 (2026-08-10)
 
 Require two graph signals so `cluster_size` alone can't trip the flag.
 
@@ -24,9 +24,10 @@ Require two graph signals so `cluster_size` alone can't trip the flag.
   8/12 → 5/12; held-out TEST unchanged; sybil recall 75% → 67%; TRAIN −5.2 pts.
 - **Verdict:** real but modest; **narrows, does not close** the gap. Low-risk
   (no held-out-test regression).
-- **To ship:** flip the `SCORING_CLUSTER_MIN_SIGNALS` default to `2`, bump
-  `SCORER_VERSION` (history rows stay distinguishable), and update the scoring
-  tests that assert threshold-1 behavior. Not done yet — a deliberate decision.
+- **Shipped:** `CLUSTER_MIN_SIGNALS` now defaults to `2`; `SCORER_VERSION` bumped
+  to `0.5.0-threshold-v2` (old history keeps `0.4.0-graph`); scoring tests
+  updated to the new default; `SCORING_CLUSTER_MIN_SIGNALS=1` still reproduces
+  the old behavior. Post-ship verification reproduced the numbers exactly.
 
 ## Fix 2 — rare-counterparty edge filtering  (not implemented)
 
