@@ -38,7 +38,9 @@ in stubbed bodies without breaking the API contract.
   evidence minus risk-flag penalties, all tunable in scoring/config.py.
 - Wired into /verify (contract unchanged; features ingested/computed on
   demand). Verified Sybil labels + evaluation harness → docs/scoring-eval.md
-  (83% accuracy, honest limitations). See docs/scoring.md.
+  (78.6% held-out, cluster-aware; the earlier 83% was a pre-split 12-wallet
+  number, now superseded). Real-world single-wallet accuracy is materially
+  lower — see docs/accuracy-gap.md. See docs/scoring.md.
 - Deferred: ML ensemble, funding-cluster Sybil detection, trust_scores
   persistence, L2 ingestion for L2-native wallets.
 
