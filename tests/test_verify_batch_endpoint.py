@@ -35,6 +35,9 @@ def test_batch_scores_all_wallets_in_input_order() -> None:
     for r in body:
         assert set(r) >= {"wallet", "human_likelihood", "trust_tier", "risk_flags", "proof"}
         assert r["proof"]["signature"]  # each wallet gets a signed proof
+        # Stub mode (no DB): no graph context -> size 1 + honest note.
+        assert r["graph_context_size"] == 1
+        assert "isolated" in r["graph_context_note"]
 
 
 def test_batch_defaults_to_ethereum_chain() -> None:

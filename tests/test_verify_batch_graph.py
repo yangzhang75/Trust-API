@@ -119,9 +119,18 @@ def test_batch_endpoint_populates_graph_features(db_session: Session) -> None:
         Settings(api_keys=TEST_API_KEY, rate_limit_per_minute=1000, environment="test")
     )
     app.dependency_overrides[get_db] = lambda: db_session
-    resp = TestClient(app).post("/verify/batch", json={"wallets": [A, B, C, Z]}, headers=AUTH)
-    assert resp.status_code == 200
-    assert [r["wallet"] for r in resp.json()] == [A, B, C, Z]
+    body = TestClient(app).post("/verify/batch", json={"wallets": [A, B, C, Z]}, headers=AUTH)
+    assert body.status_code == 200
+    results = body.json()
+    assert [r["wallet"] for r in results] == [A, B, C, Z]
+
+    by_addr = {r["wallet"]: r for r in results}
+    # Honesty field: cluster members report context 3 (no note); isolated Z=1 + note.
+    assert by_addr[A]["graph_context_size"] == 3
+    assert by_addr[A]["graph_context_note"] is None
+    assert by_addr[Z]["graph_context_size"] == 1
+    assert "isolated" in by_addr[Z]["graph_context_note"]
+
     feat_a = db_session.execute(
         select(WalletFeature).join(Wallet).where(Wallet.address == A)
     ).scalar_one()

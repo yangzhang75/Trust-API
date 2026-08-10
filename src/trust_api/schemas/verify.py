@@ -107,6 +107,20 @@ class VerifyResponse(BaseModel):
     proof: Proof
 
 
+class BatchWalletResult(VerifyResponse):
+    """One wallet's result in a POST /verify/batch response.
+
+    Same shape as /verify plus honesty fields: ``graph_context_size`` is how
+    many wallets formed this wallet's graph context (its connected-component
+    size in the batch — larger = more reliable graph features), and
+    ``graph_context_note`` explains when that context is degenerate
+    (``graph_context_size == 1`` means isolated: no relationships found).
+    """
+
+    graph_context_size: int = Field(..., ge=1)
+    graph_context_note: str | None = None
+
+
 class ProofVerifyRequest(BaseModel):
     """Request body for POST /proof/verify.
 

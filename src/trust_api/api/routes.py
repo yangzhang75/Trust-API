@@ -31,6 +31,7 @@ from trust_api.pipeline import (
 )
 from trust_api.schemas.verify import (
     BatchVerifyRequest,
+    BatchWalletResult,
     ErrorResponse,
     GeneratedProof,
     Proof,
@@ -53,6 +54,13 @@ logger = get_logger(__name__)
 # Max wallets per POST /verify/batch request. Larger requests are rejected with
 # a 400 suggesting the client split into multiple calls.
 MAX_BATCH_WALLETS = 100
+
+# Note attached to a batch result whose graph context is degenerate (the wallet
+# had no graph relationships with the others, so graph_context_size == 1).
+_ISOLATED_NOTE = (
+    "isolated: no shared funders/counterparties with other wallets in this "
+    "batch — scored on individual activity only"
+)
 
 
 def _query_features(db: Session, wallet_address: str) -> WalletFeature | None:
@@ -301,7 +309,7 @@ def _verify_response(wallet, result, chains, signed, ttl_hours: int) -> VerifyRe
 
 @router.post(
     "/verify/batch",
-    response_model=list[VerifyResponse],
+    response_model=list[BatchWalletResult],
     tags=["verify"],
     summary="Assess a batch of wallets together (graph features populated within the batch)",
     dependencies=[Depends(rate_limit)],  # one batch call counts as ONE request
@@ -317,7 +325,7 @@ def verify_batch(
     settings: Annotated[Settings, Depends(get_settings)],
     signer: Annotated[Signer, Depends(get_signer)],
     db: Annotated[Session | None, Depends(get_db)] = None,
-) -> list[VerifyResponse]:
+) -> list[BatchWalletResult]:
     """Score many wallets in one call, with graph (cluster) features populated
     across the batch. One batch = one rate-limited request.
 
@@ -351,12 +359,19 @@ def verify_batch(
 
     proof_service = ProofService(signer, settings.proof_ttl_hours)
     chain_values = [c.value for c in body.chains]
-    results: list[VerifyResponse] = []
+    results: list[BatchWalletResult] = []
     for gs in scored:
         signed = proof_service.generate(
             wallet=gs.address, result=gs.result, chains=chain_values, session=db
         )
+        base = _verify_response(
+            gs.address, gs.result, body.chains, signed, settings.proof_ttl_hours
+        )
         results.append(
-            _verify_response(gs.address, gs.result, body.chains, signed, settings.proof_ttl_hours)
+            BatchWalletResult(
+                **base.model_dump(),
+                graph_context_size=gs.graph_context_size,
+                graph_context_note=None if gs.graph_context_size > 1 else _ISOLATED_NOTE,
+            )
         )
     return results
