@@ -7,6 +7,8 @@ single file. See docs/scoring.md for the human-readable rationale.
 
 from __future__ import annotations
 
+import os
+
 from trust_api.schemas.verify import HumanLikelihood, RiskFlag, TrustTier
 
 # Bumped whenever scoring logic/thresholds change, so history rows from
@@ -29,7 +31,9 @@ COUNTERPARTY_OVERLAP_MIN = 0.30  # Jaccard overlap with another wallet
 FUNDING_CHAIN_MIN = 2  # relay depth: funded through >= 2 in-sample hops
 CLUSTER_SIZE_MIN = 3  # connected component of >= 3 wallets
 # sybil_cluster fires when at least this many graph signals are present.
-CLUSTER_MIN_SIGNALS = 1
+# Overridable via SCORING_CLUSTER_MIN_SIGNALS for the Week-11 threshold
+# ablation (docs/threshold-experiment.md); default 1 keeps prod/CI unchanged.
+CLUSTER_MIN_SIGNALS = int(os.getenv("SCORING_CLUSTER_MIN_SIGNALS", "1"))
 
 # --- Positive-evidence saturation points ----------------------------------
 # Each positive sub-score is feature / full-credit-point, capped at 1.0.

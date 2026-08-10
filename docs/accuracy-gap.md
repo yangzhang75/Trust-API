@@ -107,10 +107,27 @@ harder for a scorer that pushes clustered wallets toward bronze; part of the
   (`counterparty_overlap`) but is drowned by an over-connected `cluster_size` at
   a permissive threshold.
 - **Concrete, ranked fixes** (all scoring-logic changes — out of Week 11 scope):
-  1. `CLUSTER_MIN_SIGNALS: 1 → 2` — smallest lever; tested in
-     docs/threshold-experiment.md.
+  1. `CLUSTER_MIN_SIGNALS: 1 → 2` — smallest lever. **Tested** — see below.
   2. Rare-counterparty edge filtering so `cluster_size` stops over-connecting.
   3. Cluster-aligned batching (group by campaign/time/referrer, not at random).
+
+## Update — the `CLUSTER_MIN_SIGNALS` 1→2 experiment ([details](threshold-experiment.md))
+
+The fix #1 hypothesis was tested rigorously (single variable, red lines,
+ablation). Result: **partial improvement, gap not closed.**
+
+- Balanced accuracy **54.2% → 62.5%** (+8.3 pts), by cutting human
+  false-positives 8/12 → 5/12 — exactly the predicted mechanism.
+- Held-out TEST accuracy **unchanged** (82.1% this run — note: baseline drifted
+  up from the documented 78.6% by one wallet, live-data). No regression there.
+- Tradeoffs: balanced sybil recall 75% → 67% (one fewer sybil caught), and the
+  sybil-heavy TRAIN split dropped 5.2 pts.
+
+So batch + this one threshold change lifts balanced accuracy a real but modest
+amount and does **not** restore cluster-aware accuracy. Fixes #2 and #3 remain
+the path to actually closing the gap. The change is validated behind
+`SCORING_CLUSTER_MIN_SIGNALS` (default still `1`); shipping it is a separate
+decision (`SCORER_VERSION` bump) — see [scoring-v2-proposal.md](scoring-v2-proposal.md).
 
 ## Reproduce
 
