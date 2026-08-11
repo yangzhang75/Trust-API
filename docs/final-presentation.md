@@ -78,8 +78,29 @@ we reproduced the gap, diagnosed it to a specific line (`CLUSTER_MIN_SIGNALS`),
 tested one variable with pre-set red lines and an ablation, and reported the
 modest result and its tradeoffs without inflation. No "gap closed."
 
-## Deployment & performance (Week 12 — in progress)
+## Performance (Week 12 — done)
 
-_To be completed: containerized deployment, migration/runbook, load/latency
-profile, and the honest performance notes (e.g. the O(N²) graph pass and
-N-ingest cost in `hybrid-integration.md`)._
+Local profiling + a basic load benchmark (`performance.md`).
+
+- **Response caching:** short-TTL Redis cache of the /verify assessment, with an
+  `X-Cache: HIT|MISS` header (no JSON contract change) and best-effort
+  degradation on a Redis outage.
+- **`/verify` load:** sustains **10 / 50 / 100 rps with 0 errors**, p50 **6–10 ms**,
+  p95 8–12 ms, p99 15–38 ms (cache-warm). Ship-ready at demo scale. Honest note:
+  the cache's win is modest on warm small data (the feature lookup is already
+  0.1 ms) — it matters most for cold wallets and under contention.
+- **`/verify/batch` load:** the bottleneck — **~5.3 s per 20-wallet batch** at
+  5-way concurrency (0 errors, just slow). Fine as a *background* job (the hybrid
+  re-score runs every ~15 min), **not** production-ready for high volume. Root
+  causes and fixes documented: 20 commits/batch → one transaction, per-wallet
+  feature queries → one set-based query, bounded worker pool, pooled ingestion.
+- **Indexes:** hot paths are index-backed and sub-millisecond; no migration
+  needed now. One production-scale index (`usage_events.created_at`) is deferred
+  with a clear trigger.
+
+## Deployment (Week 12 — pending, awaiting confirmation)
+
+_Not started — paused for explicit sign-off on: Fly.io account + billing, which
+Etherscan key to use (possible leak to verify), signing-key generation/storage,
+and comfort with running deploy commands. Deployment runbook + any local-vs-prod
+behavior differences will be documented here once it proceeds._
