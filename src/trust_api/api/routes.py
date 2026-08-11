@@ -12,13 +12,15 @@ import asyncio
 from time import perf_counter
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from redis import Redis
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from trust_api.api.deps import get_settings, get_signer, rate_limit
+from trust_api.api.deps import get_redis, get_settings, get_signer, rate_limit
 from trust_api.config import Settings
+from trust_api.core.cache import AssessmentCache
 from trust_api.core.logging import get_logger
 from trust_api.core.metrics import METRICS
 from trust_api.db.models import Wallet, WalletFeature
@@ -128,18 +130,34 @@ def verify(
     body: VerifyRequest,
     settings: Annotated[Settings, Depends(get_settings)],
     signer: Annotated[Signer, Depends(get_signer)],
+    redis_client: Annotated[Redis, Depends(get_redis)],
+    response: Response,
     db: Annotated[Session | None, Depends(get_db)] = None,
 ) -> VerifyResponse:
-    """Resolve features, score them, and return a signed proof."""
+    """Resolve features, score them, and return a signed proof.
+
+    A short-TTL Redis cache of the *assessment* skips feature-resolve + scoring
+    on a hit (X-Cache: HIT|MISS); a fresh, uniquely nonced proof is always
+    minted, so the cache never staleness-leaks proofs.
+    """
     if not is_valid_evm_wallet(body.wallet):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid wallet address; expected an EVM address (^0x[a-fA-F0-9]{40}$).",
         )
 
+    chain_values = [c.value for c in body.chains]
+    cache = AssessmentCache(redis_client, settings.verify_cache_ttl_seconds)
     started = perf_counter()
-    features = _resolve_features(db, body.wallet, settings) or EMPTY_FEATURES
-    result = score(features)
+    cached = cache.get(body.wallet, chain_values)
+    if cached is not None:
+        result = cached
+        response.headers["X-Cache"] = "HIT"
+    else:
+        features = _resolve_features(db, body.wallet, settings) or EMPTY_FEATURES
+        result = score(features)
+        cache.set(body.wallet, chain_values, result)
+        response.headers["X-Cache"] = "MISS"
     # Bump the SAME shared-Redis counters the pipeline uses, so System health's
     # scoring metrics (and avg duration) reflect /verify traffic too — not just
     # the worker. Best-effort inside METRICS (Redis outage is swallowed).
@@ -148,7 +166,7 @@ def verify(
     signed = ProofService(signer, settings.proof_ttl_hours).generate(
         wallet=body.wallet,
         result=result,
-        chains=[c.value for c in body.chains],
+        chains=chain_values,
         session=db,
     )
     _record_score_history(db, body.wallet, result)

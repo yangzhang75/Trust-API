@@ -24,16 +24,23 @@ EXPECTED_HASH = hashlib.sha256(TEST_API_KEY.encode("utf-8")).hexdigest()[:16]
 
 
 class FakeRedis:
-    """In-memory stand-in for the rate limiter (incr/expire only)."""
+    """In-memory stand-in: rate limiter (incr/expire) + verify cache (get/set)."""
 
     def __init__(self) -> None:
-        self.store: dict[str, int] = {}
+        self.store: dict = {}
 
     def incr(self, key: str) -> int:
-        self.store[key] = self.store.get(key, 0) + 1
+        self.store[key] = int(self.store.get(key, 0)) + 1
         return self.store[key]
 
     def expire(self, key: str, ttl: int) -> bool:
+        return True
+
+    def get(self, key: str):
+        return self.store.get(key)
+
+    def set(self, key: str, value: str, ex: int | None = None) -> bool:
+        self.store[key] = value
         return True
 
 

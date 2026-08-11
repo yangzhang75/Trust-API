@@ -46,6 +46,11 @@ class Settings(BaseSettings):
     proof_signing_key: str = Field(default="")
     proof_ttl_hours: int = Field(default=24, ge=1)
 
+    # --- Response caching (Week 12) ---
+    # Short-TTL Redis cache of /verify assessments (score, not the proof).
+    # 0 disables. Best-effort: a Redis outage degrades to a cache miss.
+    verify_cache_ttl_seconds: int = Field(default=30, ge=0)
+
     # --- Ingestion (Week 2) ---
     # Etherscan V2 unified API; one key works across chains via chainid.
     etherscan_api_key: str = Field(default="")

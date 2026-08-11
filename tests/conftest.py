@@ -38,6 +38,26 @@ def _isolate_provider_key(monkeypatch):
     monkeypatch.setenv("ETHERSCAN_API_KEY", "")
 
 
+@pytest.fixture(autouse=True)
+def _isolate_verify_cache():
+    """Isolate the /verify assessment cache (Week 12) across tests.
+
+    The cache lives in the shared test Redis, keyed by wallet — without this a
+    score cached by one test would leak into another that reuses the address.
+    Best-effort: if Redis is unreachable, there is nothing to flush.
+    """
+    import redis as redis_lib
+
+    url = os.environ.get("REDIS_URL") or "redis://localhost:6379/0"
+    try:
+        client = redis_lib.from_url(url, socket_connect_timeout=0.3, socket_timeout=0.3)
+        for key in client.scan_iter("verify:*"):
+            client.delete(key)
+    except redis_lib.RedisError:
+        pass
+    yield
+
+
 def _test_db_url() -> str:
     """Resolve the test Postgres URL (CI/local override → app default)."""
     return (

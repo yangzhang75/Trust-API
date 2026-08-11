@@ -21,26 +21,39 @@ PAYLOAD = {"wallet": VALID_WALLET, "chains": ["ethereum"]}
 
 
 class FakeRedis:
-    """Minimal Redis stand-in supporting the limiter's incr/expire."""
+    """Minimal Redis stand-in: limiter (incr/expire) + verify cache (get/set)."""
 
     def __init__(self) -> None:
-        self.store: dict[str, int] = {}
+        self.store: dict = {}
 
     def incr(self, key: str) -> int:
-        self.store[key] = self.store.get(key, 0) + 1
+        self.store[key] = int(self.store.get(key, 0)) + 1
         return self.store[key]
 
     def expire(self, key: str, ttl: int) -> bool:
         return True
 
+    def get(self, key: str):
+        return self.store.get(key)
+
+    def set(self, key: str, value: str, ex: int | None = None) -> bool:
+        self.store[key] = value
+        return True
+
 
 class FailingRedis:
-    """Redis stand-in that simulates an outage."""
+    """Redis stand-in that simulates an outage (limiter + cache)."""
 
     def incr(self, key: str) -> int:
         raise redis_lib.RedisError("redis is down")
 
     def expire(self, key: str, ttl: int) -> bool:
+        raise redis_lib.RedisError("redis is down")
+
+    def get(self, key: str):
+        raise redis_lib.RedisError("redis is down")
+
+    def set(self, key: str, value: str, ex: int | None = None):
         raise redis_lib.RedisError("redis is down")
 
 
