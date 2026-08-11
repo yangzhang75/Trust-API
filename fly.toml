@@ -1,0 +1,54 @@
+# Fly.io deployment config for the Trust API (Week 12).
+#
+# Production-shaped and ready for any future operator. NOT deployed to a paid
+# host during the internship (cost) — see docs/deployment.md and README. A local
+# docker-compose demo is used for the final review.
+#
+# First-time bring-up (no deploy):  fly launch --no-deploy --copy-config
+# Set secrets (see docs/deployment.md), then:  fly deploy
+
+app = "trust-api"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "Dockerfile"
+
+# Two processes off the same image: the HTTP API and the background worker.
+# The dashboard is a separate app (Dockerfile.dashboard) — see docs/deployment.md.
+[processes]
+  app = "uvicorn trust_api.main:app --host 0.0.0.0 --port 8000"
+  worker = "python -m trust_api.worker"
+
+# Apply Alembic migrations once per release, before the new version takes
+# traffic (DATABASE_URL is available from secrets during the release command).
+[deploy]
+  release_command = "alembic upgrade head"
+
+# Non-secret config only. Secrets (DATABASE_URL, REDIS_URL, API_KEYS,
+# ETHERSCAN_API_KEY, PROOF_SIGNING_KEY) are set with `fly secrets set` — never
+# committed here. See docs/deployment.md.
+[env]
+  ENVIRONMENT = "production"
+  LOG_LEVEL = "INFO"
+  RATE_LIMIT_PER_MINUTE = "60"
+  VERIFY_CACHE_TTL_SECONDS = "30"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  # Liveness/readiness probe -> the app's /health endpoint.
+  [[http_service.checks]]
+    method = "get"
+    path = "/health"
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "10s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

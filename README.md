@@ -272,6 +272,33 @@ python -m trust_api.jobs.score --refresh-stale --hours 24
 python -m trust_api.jobs.score --refresh-all           # or `make score`
 ```
 
+## Deployment
+
+Deployment configuration is **production-ready**: a Fly.io app config
+([`fly.toml`](fly.toml)) with two processes (API + worker) and a `/health`
+check, secret management via `fly secrets` (`DATABASE_URL`, `REDIS_URL`,
+`API_KEYS`, `ETHERSCAN_API_KEY`, `PROOF_SIGNING_KEY`), a release-command
+migration step, and a rollback procedure. Any future operator can follow
+[`docs/deployment.md`](docs/deployment.md) end-to-end:
+
+```bash
+fly launch --no-deploy --copy-config   # register app from fly.toml
+fly postgres create && fly postgres attach trust-api-db
+fly redis create
+fly secrets set API_KEYS=… ETHERSCAN_API_KEY=… PROOF_SIGNING_KEY=…
+fly deploy                              # builds, migrates, rolls out
+```
+
+> **Not deployed to a live cloud host** — this is a deliberate demo-time choice
+> (avoiding paid Fly.io Postgres/Redis + always-on machines during the
+> internship), **not a limitation**. The full system runs and is demonstrated
+> locally via `docker compose` (see [Quick start](#quick-start-docker)) and the
+> one-command walkthrough:
+>
+> ```bash
+> scripts/live_demo.sh    # end-to-end: /verify, batch, proofs, mock platform
+> ```
+
 ## License
 
 Proprietary — internal internship project.

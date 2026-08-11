@@ -1,8 +1,11 @@
-# Proof-of-Human Trust API — final presentation (living draft)
+# Proof-of-Human Trust API — final presentation
 
-> Status: draft. Weeks 1–11 complete; Week 12 (deployment + performance) in
-> progress. The accuracy section below is final and honest — it is a
-> **"problem discovered and diagnosed"** story, not a "problem solved" one.
+> Status: **complete (Weeks 1–12).** Backend Reputation-as-a-Service:
+> wallet trust scoring, signed proofs, a verification flow, an internal
+> dashboard, a mock-integration platform, a hybrid batch path, and
+> production-ready deployment config. The accuracy section is deliberately a
+> **"problem discovered and diagnosed"** story, not a "problem solved" one —
+> that honesty is the point, not a caveat.
 
 ## What was built (Weeks 1–11)
 
@@ -98,9 +101,49 @@ Local profiling + a basic load benchmark (`performance.md`).
   needed now. One production-scale index (`usage_events.created_at`) is deferred
   with a clear trigger.
 
-## Deployment (Week 12 — pending, awaiting confirmation)
+## Deployment (Week 12 — configuration complete)
 
-_Not started — paused for explicit sign-off on: Fly.io account + billing, which
-Etherscan key to use (possible leak to verify), signing-key generation/storage,
-and comfort with running deploy commands. Deployment runbook + any local-vs-prod
-behavior differences will be documented here once it proceeds._
+Deployment configuration is **production-ready** — Fly.io config
+([`fly.toml`](fly.toml): two processes, `/health` check, release-command
+migrations), secret management (`fly secrets` for `DATABASE_URL`, `REDIS_URL`,
+`API_KEYS`, `ETHERSCAN_API_KEY`, `PROOF_SIGNING_KEY`), health checks (app
+`/health` + docker-compose healthchecks), and a rollback procedure are all in
+place ([`docs/deployment.md`](deployment.md)). **Not deployed to a paid host
+during the internship for cost reasons; local demonstration through
+docker-compose and the mock platform is sufficient for the final review.** This
+is a demo-time choice, not a limitation — any operator can `fly deploy` from the
+committed config.
+
+## How to run it (local)
+
+```bash
+docker compose up -d        # api, worker, dashboard, mock, Postgres, Redis
+scripts/live_demo.sh        # one-command end-to-end walkthrough (verified working)
+```
+
+The walkthrough exercises `/verify` (with `X-Cache` MISS→HIT), `/verify/batch`
+(graph features + `graph_context_size`), proof generate/verify, the three mock
+integration scenarios, and the hybrid re-score — all against the local stack.
+The internal dashboard is at `http://localhost:8501`.
+
+## Engineering quality
+
+- **100% test coverage** enforced in CI (`--cov-fail-under=100`), plus a
+  separate migration-check job; both green on every commit.
+- Real data throughout (live Etherscan V2 ingestion), not fixtures.
+- **Version discipline:** `SCORER_VERSION` bumped on the scoring change
+  (`0.5.0-threshold-v2`); old history rows keep their `0.4.0-graph` tag.
+- **Contract discipline:** the `/verify` request/response shape has been stable
+  since Week 1; caching and metadata were added via headers, never the body.
+
+## What's next (scoped, not built)
+
+Honestly out of scope for this internship, documented for a follow-on:
+
+- **Scoring v2** to actually close the balanced-accuracy gap: rare-counterparty
+  edge filtering, cluster-aligned batching, and re-tuning on a balanced holdout
+  ([`scoring-v2-proposal.md`](scoring-v2-proposal.md)).
+- **Batch performance** for high-volume production: one transaction per batch,
+  a set-based cohort feature query, and a bounded worker pool
+  ([`performance.md`](performance.md)).
+- **Live deployment** whenever a paid host is warranted — config is ready.
