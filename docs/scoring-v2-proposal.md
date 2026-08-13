@@ -29,15 +29,19 @@ Require two graph signals so `cluster_size` alone can't trip the flag.
   updated to the new default; `SCORING_CLUSTER_MIN_SIGNALS=1` still reproduces
   the old behavior. Post-ship verification reproduced the numbers exactly.
 
-## Fix 2 — rare-counterparty edge filtering  (not implemented)
+## Fix 2 — rare-counterparty edge filtering  ⚠️ ATTEMPTED → REVERTED (negative result)
 
-Root-cause fix for over-connection. In `graph.py`, an edge between two wallets
-currently forms if they share **any** counterparty. Change: only count a shared
-counterparty (or funder) as an edge if that address is **low-degree** across the
-cohort (a plausible farming funder), ignoring high-degree mainstream addresses
-(major DEXs, stablecoins, bridges). Then `cluster_size` reflects real farming
-structure instead of "everyone used Uniswap," and it becomes discriminating on
-its own. Expected to help more than Fix 1, and to make Fix 1 less load-bearing.
+Implemented as a blanket "drop counterparties touching >20% of wallets" filter
+behind `RARE_COUNTERPARTY_FILTER_ENABLED` (default off; code retained). Result:
+improved holdout TEST +3.6 pts but did **not** improve the balanced set, and a
+degree-only filter risks removing genuine farming-funder signal (sybil-recall
+collapse concern). **Reverted** — see `scoring-v2-experiment-log.md`. Production
+stays `0.5.0-threshold-v2`.
+
+Redesign for a future attempt: don't filter on degree alone. Distinguish
+**infra** (0% inbound, contract — safe to drop) from **funders** (inbound EOA —
+must keep), or **down-weight** rather than hard-drop, so `cluster_size` stops
+over-connecting without erasing shared-funder signal.
 
 ## Fix 3 — cluster-aligned batching  (product/integration, not scoring)
 

@@ -20,15 +20,41 @@ Features:
 
 from __future__ import annotations
 
+import os
 from collections import Counter
 from dataclasses import dataclass
 
-from sqlalchemy import select
+from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session
 
 from trust_api.db.models import Wallet, WalletTransaction
 
 TOP_FUNDERS = 3
+
+# Rare-counterparty filter (scoring v2, Experiment 1). When enabled, edges that
+# go through a "high-degree" counterparty — one that interacts with more than
+# HIGH_DEGREE_RATIO of ALL wallets in the dataset (shared infra: DEXs, stables,
+# WETH, bridges) — are excluded from the graph, so incidental sharing doesn't
+# over-connect wallets. Off by default; a-priori ratio, not tuned to data.
+HIGH_DEGREE_RATIO = 0.20
+
+
+def _rare_counterparty_filter_enabled() -> bool:
+    return os.getenv("RARE_COUNTERPARTY_FILTER_ENABLED", "false").lower() in ("1", "true", "yes")
+
+
+def _high_degree_counterparties(session: Session, ratio: float) -> set[str]:
+    """Counterparties interacting with > ratio of all wallets that have any tx."""
+    total = session.execute(select(func.count(distinct(WalletTransaction.wallet_id)))).scalar_one()
+    if not total:
+        return set()
+    rows = session.execute(
+        select(WalletTransaction.counterparty)
+        .where(WalletTransaction.counterparty.isnot(None))
+        .group_by(WalletTransaction.counterparty)
+        .having(func.count(distinct(WalletTransaction.wallet_id)) > total * ratio)
+    ).scalars()
+    return {r.lower() for r in rows}
 
 
 @dataclass
@@ -38,7 +64,10 @@ class _WalletGraphData:
     top_funders: set[str]
 
 
-def _load(session: Session, wallet_ids: list[int]) -> dict[int, _WalletGraphData]:
+def _load(
+    session: Session, wallet_ids: list[int], *, exclude: set[str] | None = None
+) -> dict[int, _WalletGraphData]:
+    exclude = exclude or set()
     addr_by_id = dict(
         session.execute(select(Wallet.id, Wallet.address).where(Wallet.id.in_(wallet_ids))).all()
     )
@@ -53,6 +82,8 @@ def _load(session: Session, wallet_ids: list[int]) -> dict[int, _WalletGraphData
         if not cp:
             continue
         cp = cp.lower()
+        if cp in exclude:  # skip high-degree shared-infra counterparties
+            continue
         cps[wid].add(cp)
         if direction == "in":
             funder_counts[wid][cp] += 1
@@ -68,7 +99,12 @@ def _load(session: Session, wallet_ids: list[int]) -> dict[int, _WalletGraphData
 
 def compute_graph_features(session: Session, wallet_ids: list[int]) -> dict[int, dict]:
     """Compute the 4 graph features for ``wallet_ids`` and persist them."""
-    data = _load(session, wallet_ids)
+    exclude = (
+        _high_degree_counterparties(session, HIGH_DEGREE_RATIO)
+        if _rare_counterparty_filter_enabled()
+        else set()
+    )
+    data = _load(session, wallet_ids, exclude=exclude)
     addr_to_id = {d.address: wid for wid, d in data.items()}
 
     # How many in-sample wallets use each funder.

@@ -81,6 +81,15 @@ we reproduced the gap, diagnosed it to a specific line (`CLUSTER_MIN_SIGNALS`),
 tested one variable with pre-set red lines and an ablation, and reported the
 modest result and its tradeoffs without inflation. No "gap closed."
 
+**Scoring v2 — first attempt reverted (honest negative result).** We then tried a
+rare-counterparty filter (drop shared-infra addresses like USDC/WETH/Uniswap
+from the graph). It improved the held-out TEST (+3.6 pts, ablation-confirmed) but
+did **not** improve the balanced set, and a blanket degree filter risks stripping
+genuine farming-funder signal (a sybil-recall collapse concern). We **reverted**
+to `0.5.0-threshold-v2` and documented it as a negative result rather than ship a
+change that didn't do its job (`scoring-v2-experiment-log.md`). Production remains
+`0.5.0-threshold-v2`. A smarter partial/weighted filter is future work.
+
 ## Performance (Week 12 — done)
 
 Local profiling + a basic load benchmark (`performance.md`).

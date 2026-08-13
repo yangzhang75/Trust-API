@@ -121,3 +121,41 @@ def test_graph_ignores_null_counterparty(db_session: Session) -> None:
     db_session.commit()
     res = compute_graph_features(db_session, [a])
     assert res[a]["counterparty_overlap_score"] == 0.0
+
+
+# --- rare-counterparty filter (scoring v2, Experiment 1 — shipped OFF) --------
+
+
+def test_high_degree_counterparties_empty_db(db_session: Session) -> None:
+    from trust_api.services.features.graph import _high_degree_counterparties
+
+    assert _high_degree_counterparties(db_session, 0.2) == set()  # no tx -> empty
+
+
+def test_rare_counterparty_filter_excludes_high_degree_infra(
+    db_session: Session, monkeypatch
+) -> None:
+    """With the filter ON, a counterparty shared by >20% of wallets (infra) is
+    dropped from the graph, so wallets linked ONLY through it become isolated."""
+    from trust_api.services.features.graph import (
+        _high_degree_counterparties,
+        compute_graph_features,
+    )
+
+    infra = "0x" + "f" * 40  # touched by all 3 wallets -> high-degree
+    a, b, c = (_wallet(db_session, x) for x in (A, B, C))
+    for w in (a, b, c):
+        _tx(db_session, w, 1, "out", infra)
+        _tx(db_session, w, 2, "out", "0x" + f"{w:040x}")  # unique cp so it exists
+    db_session.commit()
+    ids = [a, b, c]
+
+    assert infra in _high_degree_counterparties(db_session, 0.2)  # 3/3 = 100% > 20%
+
+    monkeypatch.setenv("RARE_COUNTERPARTY_FILTER_ENABLED", "false")
+    off = compute_graph_features(db_session, ids)
+    monkeypatch.setenv("RARE_COUNTERPARTY_FILTER_ENABLED", "true")
+    on = compute_graph_features(db_session, ids)
+
+    assert off[a]["cluster_size_estimate"] == 3  # linked via shared infra
+    assert on[a]["cluster_size_estimate"] == 1  # infra filtered -> isolated
