@@ -16,9 +16,9 @@ All addresses collected & verified **2026-08-13**.
 | 4 | Official LayerZero sybil list | github LayerZero-Labs/sybil-report (repo, raw zip, API) | no | **0** | repo returns **404** (removed/inaccessible); did NOT fabricate or substitute a third-party list |
 
 **Total new verified: 120 human, 0 sybil** (from Source 3; 5 independent DAO spaces).
-After the contract filter (below): **91 likely-human (non-contract), 29 contracts flagged.**
+After the contract filter (below): **92 likely-human (non-contract), 28 contracts flagged.**
 
-## Contract filter (`eth_getCode`, applied 2026-08-13)
+## Contract filter (`eth_getCode`, applied 2026-08-13; re-verified 2026-08-17)
 
 Each of the 120 addresses was checked via Etherscan `eth_getCode` (chainid=1).
 Non-empty bytecode ⇒ the address is a contract (delegate/multisig/etc.), not an
@@ -27,11 +27,17 @@ individual human. Rows are **annotated, not removed** (`is_contract` column in
 merge step.
 
 - **Total addresses:** 120
-- **Identified as contracts** (`is_contract=true`): **29**
-- **Confirmed non-contract / likely human** (`is_contract=false`): **91**
+- **Identified as contracts** (`is_contract=true`): **28**
+- **Confirmed non-contract / likely human** (`is_contract=false`): **92**
 - Lookup failures (`unknown`): 0
 
-The 29 contract addresses (flagged, retained in the CSV):
+**Reproducibility note (honest):** a re-run on 2026-08-17 flipped exactly one
+address (`0xB15Df29fef006aA4eCcF63e8044736560367E2De`) from contract→EOA — the
+earlier `true` was a **transient Etherscan API false positive**. Re-read 5×
+(all EOA) and all 28 remaining contract flags re-verified 3× (all stable). The
+corrected count is **28 / 92**.
+
+The 28 contract addresses (flagged, retained in the CSV):
 
 ```
 0x1F3D3A7A9c548bE39539b39D7400302753E20591  0x475E41b482aFC82BAE8025D09d128F30B680E10c
@@ -39,16 +45,15 @@ The 29 contract addresses (flagged, retained in the CSV):
 0xc5547B4907418C2EC0C2A95beC6fEE8354657759  0xAC03cBb8480cBc6340c0EE6f6D16959Bbc7f4cE4
 0x88F659b4B6D5614B991c6404b34f821e10390eC0  0x5769B60588a7c0e9ba18f1f7D31b0190158A65d9
 0x17296956b4E07Ff8931E4ff4eA06709FaB70b879  0x832b86Bd16da1657ba67C5E6982cFbaf4339b8aA
-0xB15Df29fef006aA4eCcF63e8044736560367E2De  0x7AE109A63ff4DC852e063a673b40BED85D22E585
-0x1069C820C67a0B4b177715Fe852f37114F421C97  0x19aCb89cB4bd36f6e471c91585b95b966D33132e
-0x4Dd7fc3A3B6457D1e67E3b046b2b0d2dCF25257D  0x11069c08DD30aa4C17D73b0E3984A433a0e39Fda
-0x7Bb9dCcc97052dDeF05141897fE8313fD4ad0418  0xb1315308f01f9Ffcb17486b2FeC55DCc7c3ac27a
-0x4d9Ba778B7f121e58E5d3BB6aef514e035A7c7F5  0x0062A2778e9aE57E23c58afeC4df158b329AB24e
-0x63952b652f11263eee1Db396B2023f5e6070119b  0x989b473579b938fFC956C6d12A01Ad53C0953329
-0xb67ca19DF4d2f7E31Ebf4dc0Ff66Fce80280914c  0x8cb1Ea40766977512A29d1E7D87EFD833C3e001d
-0x93A24d1bE1a5f90502e50D04bF4C15C7B3081Bef  0x2ED0F4e9769591d8eff038ABD884187c8101C7f3
-0xa6e8772af29b29B9202a073f8E36f447689BEef6  0xC7BF6b0247a9CB1768136BE7550f9B78b1F3860d
-0xa74E46110b8f9070bBC8E1778B3F05c0c76eEE3e
+0x7AE109A63ff4DC852e063a673b40BED85D22E585  0x1069C820C67a0B4b177715Fe852f37114F421C97
+0x19aCb89cB4bd36f6e471c91585b95b966D33132e  0x4Dd7fc3A3B6457D1e67E3b046b2b0d2dCF25257D
+0x11069c08DD30aa4C17D73b0E3984A433a0e39Fda  0x7Bb9dCcc97052dDeF05141897fE8313fD4ad0418
+0xb1315308f01f9Ffcb17486b2FeC55DCc7c3ac27a  0x4d9Ba778B7f121e58E5d3BB6aef514e035A7c7F5
+0x0062A2778e9aE57E23c58afeC4df158b329AB24e  0x63952b652f11263eee1Db396B2023f5e6070119b
+0x989b473579b938fFC956C6d12A01Ad53C0953329  0xb67ca19DF4d2f7E31Ebf4dc0Ff66Fce80280914c
+0x8cb1Ea40766977512A29d1E7D87EFD833C3e001d  0x93A24d1bE1a5f90502e50D04bF4C15C7B3081Bef
+0x2ED0F4e9769591d8eff038ABD884187c8101C7f3  0xa6e8772af29b29B9202a073f8E36f447689BEef6
+0xC7BF6b0247a9CB1768136BE7550f9B78b1F3860d  0xa74E46110b8f9070bBC8E1778B3F05c0c76eEE3e
 ```
 
 ## Method (no fabrication)
@@ -60,7 +65,7 @@ The 29 contract addresses (flagged, retained in the CSV):
 
 ## ⚠️ Judgment call flagged for review (per brief)
 
-These are **DAO governance voters**, which is strong behavioral evidence of an active participant but is **not** proof-of-personhood. Some high-vote addresses are **delegate contracts or multisigs**, not individual humans — the `eth_getCode` contract filter (above) identified **29 of the 120** as contracts. They are annotated (`is_contract=true`) but **retained** in the CSV; whether to exclude them is a merge-time decision still open for review. The **91** non-contract addresses are the higher-confidence human set.
+These are **DAO governance voters**, which is strong behavioral evidence of an active participant but is **not** proof-of-personhood. Some high-vote addresses are **delegate contracts or multisigs**, not individual humans — the `eth_getCode` contract filter (above) identified **28 of the 120** as contracts. They are annotated (`is_contract=true`) but **retained** in the CSV; whether to exclude them is a merge-time decision still open for review. The **92** non-contract addresses are the higher-confidence human set.
 
 ## Verified human candidates (Source 3)
 

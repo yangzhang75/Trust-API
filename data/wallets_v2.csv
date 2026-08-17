@@ -33,7 +33,7 @@ address,chain,label,source_url,is_contract
 0x832b86Bd16da1657ba67C5E6982cFbaf4339b8aA,ethereum,human,https://snapshot.org/#/arbitrumfoundation.eth,true
 0x2F2F665974261C4129b1DC6c359BD259CD66f78A,ethereum,human,https://snapshot.org/#/aavedao.eth,false
 0x3FB19771947072629C8EEE7995a2eF23B72d4C8A,ethereum,human,https://snapshot.org/#/arbitrumfoundation.eth,false
-0xB15Df29fef006aA4eCcF63e8044736560367E2De,ethereum,human,https://snapshot.org/#/aavedao.eth,true
+0xB15Df29fef006aA4eCcF63e8044736560367E2De,ethereum,human,https://snapshot.org/#/aavedao.eth,false
 0x8D1AADe42646B715470B20485e7Abe43ee35C1B9,ethereum,human,https://snapshot.org/#/uniswapgovernance.eth,false
 0x9d5765595a92c560c8759d2a9c375C66123765a5,ethereum,human,https://snapshot.org/#/aavedao.eth,false
 0x0057Be07BEEF5D9B4Beb9e2d147906e83d1915C8,ethereum,human,https://snapshot.org/#/ens.eth,false
