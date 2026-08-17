@@ -14,9 +14,11 @@ All addresses collected & verified **2026-08-13**.
 | 2 | Gitcoin grant recipients | gitcoin.co/grants | no | **0** | HTTP 404 (page); Gitcoin GraphQL API not separately queried (human target already met via Source 3) |
 | 3 | DAO governance voters (Snapshot) | hub.snapshot.org/graphql — spaces: uniswapgovernance.eth, aavedao.eth, ens.eth, gitcoindao.eth, arbitrumfoundation.eth | **yes (API)** | **120** | 604 candidates had ≥10 votes; verified the first 120 on Etherscan (100% had ≥1 tx) |
 | 4 | Official LayerZero sybil list | github LayerZero-Labs/sybil-report (repo, raw zip, API) | no | **0** | repo returns **404** (removed/inaccessible); did NOT fabricate or substitute a third-party list |
+| 5 | **Optimism** official excluded-sybil list (Step 2) | Google Sheet linked from `ethereum-optimism/community-hub` airdrop-1.mdx | **yes** | **50 (sybil)** | 17,101 officially-excluded addresses; sampled 80 evenly, verified 50 on Etherscan (1 skipped: no mainnet tx) |
+| 6 | Arbitrum official sybil list (Step 2) | github `ArbitrumFoundation/sybil-detection` | repo yes | **0** | repo holds only README/methodology + images — **no address list file** |
+| 7 | Celestia sybil clusters (Step 2) | search of official blog/docs | no | **0** | only **third-party** analysis exists (X-explore/mirror.xyz); no OFFICIAL Celestia list — skipped per rules |
 
-**Total new verified: 120 human, 0 sybil** (from Source 3; 5 independent DAO spaces).
-After the contract filter (below): **92 likely-human (non-contract), 28 contracts flagged.**
+**Total new verified: 120 human + 50 sybil.** Humans from Source 3 (5 DAO spaces); sybils from Source 5 (Optimism official list). After the contract filter (below): **92 likely-human (non-contract) + 28 human-contracts flagged; 49 sybil-EOA + 1 sybil-contract flagged.**
 
 ## Contract filter (`eth_getCode`, applied 2026-08-13; re-verified 2026-08-17)
 
@@ -55,6 +57,31 @@ The 28 contract addresses (flagged, retained in the CSV):
 0x2ED0F4e9769591d8eff038ABD884187c8101C7f3  0xa6e8772af29b29B9202a073f8E36f447689BEef6
 0xC7BF6b0247a9CB1768136BE7550f9B78b1F3860d  0xa74E46110b8f9070bBC8E1778B3F05c0c76eEE3e
 ```
+
+## Sybil sources (Step 2) — Optimism official list
+
+**Source:** Optimism's official Airdrop-1 excluded-sybil address list, published as a
+public Google Sheet and linked from the official `ethereum-optimism/community-hub`
+repo (`pages/op-token/airdrops/airdrop-1.mdx`).
+Sheet: <https://docs.google.com/spreadsheets/d/1Yt2YEs9A2cWRmBwFYd3M-K4SYZQo3CBm-PnfELXb1Us/edit?gid=822397105>
+(Optimism kept the *methodology* private but published the *address list* itself.)
+
+- Sheet contains **17,101** addresses; columns `Address Removed, Reason for Removal`.
+  Every reason is a sybil-filter classification (L1/L2 Activity, Community Reports) —
+  no exchanges/contracts removed for other reasons.
+- Sampled **80 evenly** (every 213th row — deterministic/reproducible), verified each on
+  Etherscan (mainnet, chainid=1). **50 verified** (≥1 mainnet tx); 1 skipped (no mainnet tx).
+- Removal-reason breakdown of the 50: L1&L2 Activity 17, L1 Activity 16, L2 Activity 15,
+  Community Reports 2.
+- Addresses are lowercase as published by the source (valid `^0x[a-fA-F0-9]{40}$`).
+
+**Judgment-call flag:** 1 of the 50 sybils is a **contract** (`is_contract=true`) — the
+official list is address-level and includes a contract; retained + flagged in the CSV,
+exclusion deferred to merge (same treatment as the human contracts).
+
+**Other Step-2 sources attempted:** Arbitrum `ArbitrumFoundation/sybil-detection`
+(official repo, but no address-list file — README/methodology only) → 0; Celestia (only
+third-party X-explore analysis, no official list) → 0. Neither fabricated nor substituted.
 
 ## Method (no fabrication)
 
