@@ -41,12 +41,15 @@ across the split. See [`scoring-eval.md`](scoring-eval.md).
 
 ## Known biases (important)
 
-1. **Source concentration.** All 60 wallets come from the **Hop airdrop
-   ecosystem** (an L1↔L2 bridge). This is *not* multi-project. Diversifying
-   Sybil sources (Optimism, LayerZero, etc.) was attempted but blocked by
-   rate limits / non-extractable list formats; it remains future work. The
-   evaluation therefore partly measures "can our rules approximate Hop's own
-   Sybil review," not general Sybil detection.
+1. **Source concentration (historical; partly addressed).** The *original*
+   set was 60 wallets, all from the **Hop airdrop** ecosystem. The committed
+   dataset has since grown to **105** (30 human / 75 sybil) across Hop / Safe /
+   Arbitrum. A Week-12 v2 expansion additionally collected **141** verified
+   non-contract wallets — 92 DAO-governance-voter humans (Snapshot) + 49
+   official **Optimism** sybils — for a **246-wallet evaluation pool**
+   (`docs/labeled-dataset-v2.md`); those 141 are evaluated in DB state but **not
+   yet merged** into this committed file. So concentration is materially reduced,
+   though the committed dataset itself is still the 105.
 2. **L2 skew.** The farming happened largely on **Arbitrum**. Features must
    aggregate Ethereum + Arbitrum to be meaningful (this is why L2 ingestion
    was added — see [`features.md`](features.md)).

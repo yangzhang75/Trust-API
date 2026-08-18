@@ -90,6 +90,97 @@ to `0.5.0-threshold-v2` and documented it as a negative result rather than ship 
 change that didn't do its job (`scoring-v2-experiment-log.md`). Production remains
 `0.5.0-threshold-v2`. A smarter partial/weighted filter is future work.
 
+## Scenario analysis (Week 12): two operating modes, honestly labeled
+
+The dataset was expanded to a **246-wallet** evaluation pool — the **105** existing
+labeled (30 human / 75 sybil; Hop/Safe/Arbitrum) plus **141** newly collected,
+Etherscan-verified, non-contract wallets: **92 human** (DAO governance voters,
+≥10 votes across Uniswap/Aave/ENS/Gitcoin/Arbitrum, via the Snapshot API) and
+**49 sybil** (Optimism's official excluded-sybil list). Pool = **122 human / 124
+sybil**, evaluated **in DB working state, NOT merged** into production
+`labeled_wallets.json` (still 105). Scorer **`v0.5.0-threshold-v2`, unchanged**;
+`human_likelihood` decision rule throughout; measured **2026-08-17**. See
+[`labeled-dataset-v2.md`](labeled-dataset-v2.md).
+
+The same scorer was measured **two ways** — the two production paths:
+
+- **Batch (`/verify/batch`, graph):** graph features computed once over the full
+  246 cohort (Method A), then scored.
+- **Single (`/verify`, graph NULL):** each wallet scored alone, graph features
+  NULL by construction (no cohort) — exactly a one-at-a-time call.
+
+### Batch mode (graph) — sybil-hunting, human-costly
+
+| Subset | Humans | Sybils | Accuracy | Sybil recall | Human FP rate | Wrongly-flagged humans, % of ALL users |
+| --- | --- | --- | --- | --- | --- | --- |
+| Balanced 50/50 | 120 | 120 | 68.3% | 79.2% | **42.5%** (51/120) | 21.2% |
+| Social 95/5 | 122 | 6 | 58.6% | 83.3% (n=6) | **42.6%** (52/122) | **40.6%** |
+| Airdrop 30/70 | 53 | 124 | **72.9%** | 79.8% | **43.4%** (23/53) | 13.0% |
+
+Graph context lifts sybil recall to ~79–83%, but the Week-11 over-connection issue
+gives a **~42% human false-positive rate that persists at scale** — on a
+human-heavy platform, ~40% of *all* users wrongly flagged. **This is the honest
+cost of batch mode; it is not hidden.**
+
+### Single mode (`/verify`, graph NULL) — human-friendly, sybil-permissive
+
+| Subset | Humans | Sybils | Accuracy | Sybil recall | Human FP rate | Wrongly-flagged humans, % of ALL users |
+| --- | --- | --- | --- | --- | --- | --- |
+| Balanced 50/50 | 120 | 120 | 69.2% | 39.2% | **0.8%** (1/120) | 0.4% |
+| Social 95/5 | 122 | 6 | **96.9%** | 50.0% (n=6) | 0.8% (1/122) | 0.8% |
+| Airdrop 30/70 | 53 | 124 | 57.1% | 39.5% | 1.9% (1/53) | 0.6% |
+
+With graph NULL the `sybil_cluster` flag can't fire, so human FP collapses to
+**~1%** — but sybil recall drops to ~39% (only behavioral signals catch sybils).
+
+### The tradeoff, and when to use each
+
+| | Batch (graph) | Single (`/verify`) |
+| --- | --- | --- |
+| Sybil recall (balanced) | **79.2%** | 39.2% |
+| Human FP rate | **~42%** | **~1%** |
+| Balanced accuracy | 68.3% | 69.2% |
+| Social 95/5 accuracy | 58.6% | **96.9%** |
+| Airdrop 30/70 accuracy | **72.9%** | 57.1% |
+| Best for | sybil-heavy filtering (airdrops) | human-heavy real-time (social signup) |
+
+**Neither mode is "better" — they fail in opposite directions.** Two honest
+caveats so the single-mode numbers aren't over-read:
+
+1. **Single is not inherently stronger.** On the *same* old 24-wallet set under the
+   same `human_likelihood` rule, single scores **50.0%** vs batch **62.5%** — worse
+   on identical data. Single's rise on the 246 pool is because the new Optimism
+   sybils are more *behaviorally* detectable (single recall 8.3% → 39.2%), not a
+   discrimination gain.
+2. **96.9% social is partly conservative scoring, not algorithm quality.** Single
+   mode flags almost no one; on a 95%-human population "rarely flag" scores
+   near-perfect by construction. The same conservatism gives it only 57.1% on a
+   sybil-heavy airdrop.
+
+### Recommendation — the hybrid pattern (now empirically validated)
+
+Because the modes are complementary, use **both** — exactly what the platform
+already implements ([`hybrid-integration.md`](hybrid-integration.md)):
+
+- **Single `/verify` at signup** — instant, human-facing, ~1% false-positive, so
+  real users aren't wrongly rejected.
+- **`/verify/batch` as a background re-score** — sybil-hunting where recall matters
+  (airdrop eligibility, periodic sweeps), accepting the higher FP cost off the
+  real-time path and surfacing it via an appeal/grace flow.
+
+Five existing systems (Gitcoin Passport, Chainalysis Reactor, SybilRank, Optimism,
+LayerZero) were surveyed for design ideas to raise batch recall without the human
+cost — see `docs/scoring-v2-proposal.md` ("Reference existing work").
+
+### Provenance of every accuracy number (same v0.5.0 scorer throughout)
+| Number | Mode / metric | Test set | When |
+| --- | --- | --- | --- |
+| 54.2% | single, `sybil_suspected` flag | 24-wallet balanced | Week 10 |
+| 50.0% | single, `human_likelihood` | 24-wallet balanced | re-measured 2026-08-18 |
+| 62.5% | batch, `human_likelihood` | 24-wallet balanced | Week 11 |
+| 82.14% | batch, held-out TEST | 28-wallet split of the 105 | re-measured 2026-08-11 (was 78.57%; live-data drift) |
+| 68.3% / 69.2% | batch / single, `human_likelihood` | 240-wallet balanced of the 246 pool | 2026-08-17 |
+
 ## Performance (Week 12 — done)
 
 Local profiling + a basic load benchmark (`performance.md`).

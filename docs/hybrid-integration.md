@@ -48,6 +48,29 @@ means the wallet was isolated (no shared funders/counterparties with the others)
 and a `graph_context_note` says so: it was effectively scored like a single
 `/verify`. Use it to decide how much to trust the graph-derived part of a score.
 
+## Measured validation (Week 12): the two modes really are complementary
+
+Measured on the 246-wallet expanded pool (unchanged `v0.5.0` scorer,
+`human_likelihood` rule, 2026-08-17; full tables in
+[`final-presentation.md`](final-presentation.md) and
+[`accuracy-gap.md`](accuracy-gap.md)):
+
+| | Single `/verify` (graph NULL) | `/verify/batch` (graph) |
+| --- | --- | --- |
+| Human false-positive rate | **~1%** (0.8% balanced) | **~42%** (42.5% balanced) |
+| Sybil recall (balanced) | 39.2% | **79.2%** |
+| Social 95/5 accuracy | **96.9%** | 58.6% |
+| Airdrop 30/70 accuracy | 57.1% | **72.9%** |
+
+This is the empirical case for the hybrid pattern: **single is human-friendly but
+sybil-permissive; batch is sybil-hunting but human-costly.** Use single for the
+instant, human-facing decision (so real users aren't rejected — ~1% FP) and batch
+for the background sybil sweep (where ~79% recall is worth the FP cost, mitigated
+by the appeal/grace path below). Caveat: single's 96.9% on social is partly
+*conservative scoring* on a human-heavy mix (it flags almost no one), not superior
+discrimination — on a sybil-heavy population single drops to 57.1%. Neither mode is
+universally "better"; they fail in opposite directions, which is why you run both.
+
 ## ⚠️ Tradeoffs (do not pretend these away)
 
 - **Retroactive suspension is a real UX cost.** A user can sign up, be active,

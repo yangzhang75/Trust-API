@@ -248,11 +248,18 @@ docs/                # architecture, ingestion, features, scoring, dashboard, ..
 
 `/verify` returns real scores from a transparent, deterministic rule
 engine (no ML) — see [`docs/scoring.md`](docs/scoring.md) for every rule,
-weight, and threshold. Accuracy is evaluated on a **held-out test split** of a verified labeled
-dataset ([`docs/dataset.md`](docs/dataset.md)) and reported honestly in
-[`docs/scoring-eval.md`](docs/scoring-eval.md) — currently **54.55%
-test-split** (down from a Week-4 83.33% that turned out to be a "thin
-mainnet" artifact once L2 data was added; see the report):
+weight, and threshold. Accuracy is reported honestly and always with provenance:
+a held-out TEST split of the labeled set gives ~**82%** (28-wallet split of the
+105 labeled, re-measured 2026-08-11; see [`docs/scoring-eval.md`](docs/scoring-eval.md)
+and [`docs/threshold-experiment.md`](docs/threshold-experiment.md)). The Week-12
+**expanded-dataset scenario analysis** (246-wallet pool) measures the same scorer
+in **two operating modes**: **batch** (`/verify/batch`, graph — 68.3% balanced,
+but ~42% human false-positives → ~40% of social users wrongly flagged) and
+**single** (`/verify`, graph NULL — ~1% human FP, but only ~39% sybil recall).
+Neither is "better"; they fail in opposite directions, which is the empirical case
+for the hybrid pattern — see [`docs/final-presentation.md`](docs/final-presentation.md),
+[`docs/accuracy-gap.md`](docs/accuracy-gap.md), and
+[`docs/hybrid-integration.md`](docs/hybrid-integration.md). Regenerate the held-out report:
 
 ```bash
 python -m trust_api.jobs.split              # (re)build the committed train/test split
