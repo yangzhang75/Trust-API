@@ -68,3 +68,75 @@ the headline so tuning targets real discrimination, not the class prior.
 
 Each change must be measured single-variable with red lines and an ablation, as
 in `threshold-experiment.md` — no multi-knob tuning to chase a number.
+
+## Reference existing work
+
+Sybil-detection / anti-abuse systems reviewed during the internship, as
+reference points for a future scoring v2. **None of their code is integrated** —
+this is a comparison for design ideas only.
+
+### 1. Gitcoin Passport — <https://github.com/gitcoinco/passport>
+- **Approach:** Aggregates opt-in, off-chain "stamps" (verifiable credentials from
+  Google, X/Twitter, ENS, BrightID, POAP, etc.) into a single humanity/uniqueness
+  score.
+- **Why not directly applicable:** It scores *credentials the user chose to
+  attach*, not passive on-chain behavior; it needs user action and off-chain
+  integrations we don't have, and it answers "did you prove humanity" rather than
+  "does this wallet's activity look like farming."
+- **Learn for v2:** the weighted-composite-of-many-weak-signals model with a
+  tunable acceptance threshold, and score expiry/decay — closer to a reputation
+  score than a binary flag.
+
+### 2. Chainalysis Reactor — <https://www.chainalysis.com/> (Reactor product)
+- **Approach:** Commercial blockchain-forensics tool that clusters addresses into
+  real-world entities (exchanges, mixers, illicit actors) using proprietary
+  heuristics plus a large proprietary labeled dataset, mainly for AML /
+  investigations.
+- **Why not directly applicable:** closed-source, paid, and aimed at entity
+  attribution / illicit-fund tracing, not airdrop-sybil-farming; it's incompatible
+  with our transparent, auditable, rule-based design (we can't inspect or
+  reproduce its heuristics).
+- **Learn for v2:** entity clustering via co-funding / co-spending heuristics, and
+  the outsized value of a high-quality labeled entity set (which our small dataset
+  lacks) — including cleanly separating contract/exchange/bridge addresses from
+  user EOAs (we already do a contract filter).
+
+### 3. SybilRank / academic trust-propagation — Cao et al., *Aiding the Detection of Fake Accounts in Large Scale Social Online Services*, USENIX NSDI 2012 (related: SybilGuard, SybilLimit, EigenTrust)
+- **Approach:** Seed trust at a small set of known-honest nodes and propagate it
+  via short random walks / power iteration over the trust graph, ranking a node
+  low if it sits behind a sparse "attack cut" from the honest region.
+- **Why not directly applicable:** it assumes a fast-mixing honest social graph
+  with few attack edges — a *financial* transaction graph violates this (everyone
+  transacts with the same DEXs/stablecoins, so there is no sparse honest/sybil
+  cut — precisely the over-connection we measured in Week 11 and in Experiment 1).
+  It also needs a maintained trusted seed set.
+- **Learn for v2:** seed-based trust propagation from a known-honest anchor set
+  (e.g. our verified governance voters) instead of unsupervised clustering;
+  measuring *connectivity to honest anchors* rather than raw `cluster_size`; and
+  random-walk / conductance signals that are more robust to shared-infra edges.
+
+### 4. Optimism sybil filter — official excluded-address list + methodology note in `ethereum-optimism/community-hub` (airdrop-1); list published as a public Google Sheet (accessed for our dataset v2)
+- **Approach:** Combined automated on-chain activity heuristics (categorized in the
+  published list as "L1 Activity" / "L2 Activity") with "Community Reports" to
+  remove ~17k addresses; the *exact* filter logic was deliberately not published.
+- **Why not directly applicable:** the methodology is intentionally opaque (to
+  prevent gaming), so it isn't reproducible; it's a one-time batch airdrop filter,
+  not a continuous real-time score; and it leans on multi-chain (OP + L1) signals
+  we only partially ingest.
+- **Learn for v2:** pairing automated heuristics with a community-report channel
+  (human-in-the-loop labels); multi-chain activity as a signal; and the explicit
+  transparency-vs-gameability tradeoff — Optimism chose opacity, we deliberately
+  chose transparency/auditability, so we must assume our published rules will be
+  gamed and design for it.
+
+### 5. LayerZero sybil report — official Medium: <https://medium.com/layerzero-official/addressing-sybil-activity-a2f92218ddd3> (the address repo `LayerZero-Labs/sybil-report` is now 404)
+- **Approach:** A self-report phase (sybils self-declare in exchange for 15% of
+  their allocation) plus independent analysis by LayerZero + Chaos Labs + Nansen,
+  identifying ~803k addresses via clustering across the combined signals.
+- **Why not directly applicable:** it relies on an economic self-report incentive
+  and third-party proprietary analytics (Nansen/Chaos) we can't run; the output is
+  a static bulk list, not a scoring method; and it isn't reproducible by us.
+- **Learn for v2:** the self-report incentive as a *labeling* mechanism (economic
+  design to surface ground truth); ensembling multiple independent detectors
+  rather than a single rule engine; and a sober sense of scale (~800k sybils) for
+  what real detection faces.
