@@ -71,6 +71,28 @@ by the appeal/grace path below). Caveat: single's 96.9% on social is partly
 discrimination — on a sybil-heavy population single drops to 57.1%. Neither mode is
 universally "better"; they fail in opposite directions, which is why you run both.
 
+## When to use which — decision guidance
+
+Driven by the measured tradeoff above (single ~1% human FP / ~39% recall; batch
+~79% recall / ~42% human FP):
+
+- **Use single `/verify` when** the decision is **real-time and human-facing** and
+  a wrongly-rejected real user is the expensive error — signup, login, posting,
+  any gate on a **human-heavy** population. Single flags almost no one (~1% FP), so
+  legitimate users get through; the cost is that it misses ~60% of sybils.
+- **Use `/verify/batch` when** you are **hunting sybils** and can tolerate
+  false-positives off the hot path — **airdrop / reward eligibility**, periodic
+  fraud sweeps, sybil-heavy cohorts. Graph context lifts recall to ~79%, but
+  budget for the ~42% human FP (appeal/grace flow, human review).
+- **Combine them (recommended default)** for any product that onboards humans *and*
+  must resist farming: single at registration for the instant, low-FP decision;
+  `/verify/batch` as the **background re-score** that catches clusters single can't
+  see, feeding retroactive suspension **with an appeal path**. This is the pattern
+  below, now empirically supported.
+- **Caveat:** batch only helps when the batch is a **real neighborhood** (same
+  campaign/time/referrer). A random batch over-connects and drops legitimate users
+  to bronze — see the tradeoffs below and [`accuracy-gap.md`](accuracy-gap.md).
+
 ## ⚠️ Tradeoffs (do not pretend these away)
 
 - **Retroactive suspension is a real UX cost.** A user can sign up, be active,

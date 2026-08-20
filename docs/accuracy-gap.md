@@ -177,6 +177,24 @@ The **unchanged v0.5.0 scorer** was measured on this pool two ways (2026-08-17),
    when the population is 95% human, "rarely flag" scores near-perfect by
    construction. Single on a sybil-heavy airdrop is only 57.1%.
 
+### Measurement conventions & legacy numbers (live-verified 2026-08-18)
+
+**Primary metric:** `human_likelihood` (score `low` → predicted **sybil**;
+`medium`/`high` → **human**). *Every* 246-pool and batch number in this doc uses
+it. An older Week-10 convention classified on the **`sybil_suspected` flag**
+instead; it is reported only for the legacy single-wallet number below, for
+continuity. The two conventions differ — always read a number together with its
+convention.
+
+| Legacy set | Batch | Single | Convention |
+| --- | --- | --- | --- |
+| Balanced 24 (12h+12s, pre-expansion) | 62.5% | 50.0% | `human_likelihood` (primary) |
+| Balanced 24 — single, flag convention | — | 54.2% | `sybil_suspected` flag |
+| Held-out TEST 28 (of the 105; graph over 105) | 82.14% | — | `human_likelihood`, cluster-aware |
+
+Batch balanced-24 sybil recall is 8/12 (66.7%); the held-out TRAIN(77) is 71.43%.
+Scorer `v0.5.0-threshold-v2`, unchanged, throughout.
+
 **Complementary roles → the hybrid pattern.** Because the modes fail in opposite
 directions, the right design uses **both**: single `/verify` for the real-time,
 human-facing decision (low false-positives at signup) and `/verify/batch` as a

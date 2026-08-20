@@ -16,6 +16,18 @@ cohorts share mainstream counterparties → one giant component), and
 one genuinely discriminating feature, `counterparty_overlap` (0.47 sybil vs 0.10
 human), is drowned out.
 
+**Update (Week 12) — this is a *batch-mode* problem, not the whole story.** The
+expanded 246-wallet evaluation (Fix 4 below) measured both production paths under
+realistic class ratios. The ~54%/over-connection failure is specific to **batch**
+(graph) mode; **single `/verify`** (graph NULL) is actually **strong on
+production-realistic, human-heavy ratios** — 96.9% on a 95%-human social mix with
+~1% human false-positives — because with no graph the over-connection flag can't
+fire. Its weakness is the mirror image: ~39% sybil recall. So scoring v2 should
+target **batch's human false-positive rate** (raise recall without wrecking
+humans), while single mode already serves the real-time path well; the near-term
+answer is the **hybrid** pattern ([`hybrid-integration.md`](hybrid-integration.md)),
+not a scoring change. Full numbers: [`accuracy-gap.md`](accuracy-gap.md).
+
 ## Fix 1 — `CLUSTER_MIN_SIGNALS: 1 → 2`  ✅ SHIPPED in v0.5.0-threshold-v2 (2026-08-10)
 
 Require two graph signals so `cluster_size` alone can't trip the flag.
@@ -51,12 +63,31 @@ not a random mix, so `/verify/batch` sees real structure. This is a client-side
 batching policy (see [`hybrid-integration.md`](hybrid-integration.md)), not a
 scoring change.
 
-## Fix 4 — grow + balance the labeled set, re-evaluate on a balanced holdout
+## Fix 4 — grow + balance the labeled set, re-evaluate on a balanced holdout  ✅ DONE (Week 12)
 
 The 78.6% headline is **Sybil-dominated** (`scoring-eval.md`'s own caveat), which
 inflates it relative to real-world balanced performance. Add independent human +
 sybil clusters from more projects, and report a **balanced** held-out accuracy as
 the headline so tuning targets real discrimination, not the class prior.
+
+**Done (Week 12).** The evaluation pool was expanded from 24 to **246 wallets** —
+105 existing + 141 newly collected, Etherscan-verified, non-contract wallets (92
+Snapshot governance-voter humans + 49 official Optimism sybils). It was used for
+evaluation only and **not merged** into production `labeled_wallets.json`
+([`labeled-dataset-v2.md`](labeled-dataset-v2.md)). What it revealed, on the
+**unchanged** `v0.5.0` scorer (`human_likelihood` primary metric, live-verified
+2026-08-18):
+
+- **Balanced 50/50:** batch **68.3%** / recall 79.2% / **42.5% human FP**; single
+  **69.2%** / recall 39.2% / **0.8% human FP**.
+- **Social 95/5:** batch 58.6% (40.6% of all users wrongly flagged); single
+  **96.9%** (0.8% human FP).
+- **Airdrop 30/70:** batch **72.9%** / recall 79.8%; single 57.1% / recall 39.5%.
+
+This is a **dataset** change, not a scoring gain — the two-mode tradeoff and the
+hybrid recommendation ([`accuracy-gap.md`](accuracy-gap.md),
+[`final-presentation.md`](final-presentation.md)) are the real deliverable. A
+balanced held-out re-tune (the remaining part of this fix) is still future work.
 
 ## Suggested order
 

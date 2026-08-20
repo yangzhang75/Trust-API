@@ -6,6 +6,15 @@
 > production-ready deployment config. The accuracy section is deliberately a
 > **"problem discovered and diagnosed"** story, not a "problem solved" one —
 > that honesty is the point, not a caveat.
+>
+> **Headline finding (Week 12).** The same *unchanged* scorer runs as **two
+> operating modes**: single `/verify` — human-friendly, real-time (**96.9%** on a
+> social ratio, **~1%** human false-positives) — and `/verify/batch` —
+> sybil-hunting, background (**~79%** recall, **~42%** human FP). Neither is
+> "better"; they fail in opposite directions, so the honest design is the
+> **hybrid** (single at signup, batch in the background), not a single headline
+> number. What changed to surface this was the **dataset** (24 → 246 wallets),
+> **not** the scoring.
 
 ## What was built (Weeks 1–11)
 
